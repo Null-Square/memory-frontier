@@ -1,3 +1,8 @@
+from .accessibility import (
+    GradientAccessibilityOperator,
+    gradient_accessibility_operator,
+    linearized_transition_gradient_from_readout_direction,
+)
 from .cards import finite_horizon_card
 from .core import (
     ControllerOptimum,
@@ -85,6 +90,7 @@ __all__ = [
     "ControllerOptimum",
     "ControllerSpectrum",
     "ExactSTEGradient",
+    "GradientAccessibilityOperator",
     "HardEdge",
     "HardLandscape",
     "HardNode",
@@ -115,11 +121,13 @@ __all__ = [
     "finite_horizon_card",
     "finite_horizon_hard_landscape",
     "four_state_aliasing_witness",
+    "gradient_accessibility_operator",
     "hard_value_gradient",
     "horizon_switch_witness",
     "is_doubly_stochastic",
     "is_exactly_synchronizing",
     "is_strongly_connected",
+    "linearized_transition_gradient_from_readout_direction",
     "observable_markov_source",
     "one_edit_tables",
     "predict_centered_collapsed_pressure",
