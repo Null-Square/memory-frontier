@@ -2,26 +2,34 @@ name: tests
 
 on:
   push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "data/**"
+      - "pyproject.toml"
+      - ".github/workflows/tests.yml"
   pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "data/**"
+      - "pyproject.toml"
+      - ".github/workflows/tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  pytest:
+  test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.11", "3.12"]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: pip
-      - run: python -m pip install --upgrade pip
-      - run: python -m pip install -e '.[dev]'
-      - run: pytest -q
-
-  optimization:
-    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -30,4 +38,4 @@ jobs:
           cache: pip
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -e '.[dev,optimization]'
-      - run: pytest -q tests/test_surrogate.py tests/test_readout_prior.py
+      - run: pytest -q
