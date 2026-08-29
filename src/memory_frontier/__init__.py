@@ -11,10 +11,21 @@ from .core import (
     controller_log_loss,
     source_stationary_distribution,
 )
+from .delayed import (
+    delayed_repeat_entropy_rate,
+    delayed_repeat_source,
+    delayed_shift_register_controller,
+)
 from .finite import (
     best_finite_horizon_deterministic_controller,
     controller_average_occupancy,
     controller_finite_horizon_log_loss,
+)
+from .higher_order import (
+    predict_unifilar_centered_rescaled_pressure,
+    predict_unifilar_raw_collapsed_pressure,
+    stationary_token_markovization,
+    unifilar_collapsed_pressure_accessibility_margin,
 )
 from .lab import (
     ControllerClass,
@@ -72,6 +83,9 @@ __all__ = [
     "controller_average_occupancy",
     "controller_finite_horizon_log_loss",
     "controller_log_loss",
+    "delayed_repeat_entropy_rate",
+    "delayed_repeat_source",
+    "delayed_shift_register_controller",
     "deterministic_controller_spectrum",
     "find_synchronizing_word",
     "finite_horizon_card",
@@ -87,12 +101,16 @@ __all__ = [
     "predict_raw_collapsed_pressure",
     "predict_stationary_centered_rescaled_pressure",
     "predict_stationary_raw_collapsed_pressure",
+    "predict_unifilar_centered_rescaled_pressure",
+    "predict_unifilar_raw_collapsed_pressure",
     "random_synchronizing_source",
     "source_stationary_distribution",
     "stationary_collapsed_pressure_accessibility_margin",
+    "stationary_token_markovization",
     "table_from_signature",
     "table_signature",
     "theory_card",
     "theory_card_json",
     "two_level_accessibility_cutoff",
+    "unifilar_collapsed_pressure_accessibility_margin",
 ]
