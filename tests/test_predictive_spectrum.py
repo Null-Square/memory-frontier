@@ -10,13 +10,12 @@ from memory_frontier.spectral import (
     observable_markov_source,
     predict_centered_collapsed_pressure,
     predict_raw_collapsed_pressure,
+    two_level_accessibility_cutoff,
 )
 from memory_frontier.surrogate import canonical_logits
 
 
 def _walsh_fixture():
-    # Orthonormal Walsh basis. The non-uniform predictive modes have distinct
-    # eigenvalues 0.5, 0.2, and -0.1 while all transition probabilities stay > 0.
     vectors = np.array(
         [
             [1, 1, 1, 1],
@@ -80,7 +79,6 @@ def test_exact_centered_operator_law_also_holds_for_nonnormal_source():
         ],
         dtype=float,
     )
-    # Doubly stochastic but non-normal: P P^T != P^T P.
     assert np.linalg.norm(transition @ transition.T - transition.T @ transition) > 0.05
     contrast = np.array([0.7, -0.2, 0.1])
     kwargs = dict(horizon=13, margin=0.8, temperature=0.9)
@@ -129,7 +127,7 @@ def test_predictive_eigenmodes_set_exact_pressure_amplitude_and_sign():
 
 def test_raw_pressure_exhibits_exact_finite_contrast_accessibility_barrier():
     transition, vectors, _ = _walsh_fixture()
-    mode = vectors[:, 3]  # eigenvalue -0.1, entries +/- 1/2
+    mode = vectors[:, 3]
     kwargs = dict(horizon=8, margin=0.3, temperature=0.8)
 
     below = 0.39 * mode
@@ -146,3 +144,19 @@ def test_raw_pressure_exhibits_exact_finite_contrast_accessibility_barrier():
     assert collapsed_pressure_accessibility_margin(transition, above) < 0.0
     assert np.max(_actual_pressure(transition, below, **kwargs)) > 0.0
     assert np.max(_actual_pressure(transition, above, **kwargs)) < 0.0
+
+
+def test_two_level_cutoff_predicts_full_mode_by_contrast_phase_grid():
+    transition, vectors, eigenvalues = _walsh_fixture()
+    kwargs = dict(horizon=8, margin=0.3, temperature=0.8)
+    amplitudes = (0.2, 0.5, 0.9, 1.5, 2.5)
+
+    for amplitude in amplitudes:
+        cutoff = two_level_accessibility_cutoff(amplitude / 2.0)
+        for mode in range(1, 4):
+            contrast = amplitude * vectors[:, mode]
+            predicted_accessible = abs(eigenvalues[mode]) > cutoff
+            actual_accessible = np.max(
+                _actual_pressure(transition, contrast, **kwargs)
+            ) > 1e-12
+            assert actual_accessible == predicted_accessible

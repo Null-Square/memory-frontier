@@ -8,13 +8,7 @@ from .core import UnifilarSource
 
 
 def observable_markov_source(transition_matrix: np.ndarray) -> UnifilarSource:
-    """Observable Markov source whose state is the previous emitted symbol.
-
-    ``transition_matrix[s, x]`` is both the probability of emitting symbol ``x``
-    from state ``s`` and, after that emission, the next source state is exactly
-    ``x``. This is the simplest source class for connecting predictive dynamics
-    directly to an observable Markov operator.
-    """
+    """Observable Markov source whose state is the previous emitted symbol."""
     p = np.asarray(transition_matrix, dtype=float)
     if p.ndim != 2 or p.shape[0] != p.shape[1]:
         raise ValueError("transition_matrix must be square")
@@ -50,13 +44,7 @@ def collapsed_one_contrast_pressure_scale(
     margin: float,
     temperature: float,
 ) -> float:
-    """Positive scalar in the exact collapsed-memory pressure law.
-
-    The hard controller has ``q=cardinality`` memory states and alphabet symbols,
-    every hard transition targets memory 0, and canonical transition logits give
-    target 0 margin ``margin`` over every alternative. The backward pass uses a
-    softmax with ``temperature``.
-    """
+    """Positive scalar in the exact collapsed-memory pressure law."""
     q = int(cardinality)
     T = int(horizon)
     a = float(margin)
@@ -94,15 +82,14 @@ def predict_centered_collapsed_pressure(
     """Exact centered STE pressure for one unused decoder contrast.
 
     Assumptions:
-      * the source is ``observable_markov_source(P)`` with doubly stochastic P,
-      * memory cardinality equals the alphabet size q,
+      * source is ``observable_markov_source(P)`` with doubly stochastic P,
+      * memory cardinality equals alphabet size q,
       * all hard transitions target memory state 0,
       * decoder rows 0,2,...,q-1 are identical,
       * row 1 differs from row 0 by ``decoder_logit_contrast``, and
       * transition logits use the canonical common margin/temperature geometry.
 
-    If ``pressure[x] = grad[z(0,x,0)] - grad[z(0,x,1)]``, then after removing
-    the uniform token mode,
+    If ``pressure[x] = grad[z(0,x,0)] - grad[z(0,x,1)]``, then
 
         centered_pressure = C * P @ centered(decoder_logit_contrast)
 
@@ -131,15 +118,9 @@ def predict_raw_collapsed_pressure(
 ) -> np.ndarray:
     """Exact uncentered pressure when the collapsed decoder is uniform.
 
-    Decoder row 0 and every row except row 1 have zero logits (uniform token
-    distribution). Row 1 has logits ``unused_decoder_logits``. Under the same
-    collapsed-controller assumptions as ``predict_centered_collapsed_pressure``,
-
-        pressure = C * (P @ d - log(mean(exp(d))))
-
-    where the scalar log-mean-exp term is broadcast to every observed token.
-    It is the unconditional cross-entropy penalty paid by the specialized unused
-    decoder. Positive pressure favors routing that token into memory state 1.
+    Decoder row 0 and every row except row 1 have zero logits. Row 1 has logits
+    ``unused_decoder_logits``. Positive pressure favors routing that observed
+    token into memory state 1.
     """
     p = np.asarray(transition_matrix, dtype=float)
     d = np.asarray(unused_decoder_logits, dtype=float)
@@ -159,13 +140,7 @@ def collapsed_pressure_accessibility_margin(
     transition_matrix: np.ndarray,
     unused_decoder_logits: np.ndarray,
 ) -> float:
-    """Margin for whether any token is pushed toward the unused memory state.
-
-    This omits the common positive STE scale, so its sign is independent of
-    horizon, transition-logit margin, and backward temperature. A positive value
-    means at least one token has positive raw descent pressure toward memory 1;
-    a non-positive value means every token is locally pushed away from it.
-    """
+    """Scale-free margin for whether any token is pushed toward unused memory."""
     p = np.asarray(transition_matrix, dtype=float)
     d = np.asarray(unused_decoder_logits, dtype=float)
     if not is_doubly_stochastic(p):
@@ -174,3 +149,21 @@ def collapsed_pressure_accessibility_margin(
     if d.shape != (q,):
         raise ValueError("unused_decoder_logits must have shape (q,)")
     return float(np.max(p @ d) - _log_mean_exp(d))
+
+
+def two_level_accessibility_cutoff(logit_half_gap: float) -> float:
+    """Predictive-eigenvalue cutoff for an equal +/- decoder contrast.
+
+    If a centered predictive eigenmode has equal numbers of decoder logits
+    ``+u`` and ``-u``, it has some positive raw routing pressure iff
+
+        abs(lambda) > log(cosh(u)) / u.
+
+    The continuous limit at ``u=0`` is zero. This cutoff rises monotonically
+    toward one as the decoder contrast becomes extreme.
+    """
+    u = abs(float(logit_half_gap))
+    if u == 0.0:
+        return 0.0
+    log_cosh = float(np.logaddexp(u, -u) - log(2.0))
+    return log_cosh / u

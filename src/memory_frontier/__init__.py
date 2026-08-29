@@ -43,6 +43,7 @@ from .spectral import (
     observable_markov_source,
     predict_centered_collapsed_pressure,
     predict_raw_collapsed_pressure,
+    two_level_accessibility_cutoff,
 )
 from .witnesses import four_state_aliasing_witness, horizon_switch_witness
 
@@ -85,4 +86,5 @@ __all__ = [
     "table_signature",
     "theory_card",
     "theory_card_json",
+    "two_level_accessibility_cutoff",
 ]

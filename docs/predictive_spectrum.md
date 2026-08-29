@@ -109,7 +109,7 @@ p=C\left(Pd-\log\left(\frac{1}{q}\sum_y e^{d_y}\right)\mathbf 1\right).
 }
 \]
 
-The second term is the unconditional cross-entropy penalty paid by making the unused decoder nonuniform. It is always non-negative after moving the minus sign outside, and it competes directly with predictive specialization.
+The second term is the unconditional cross-entropy penalty paid by making the unused decoder nonuniform. It competes directly with predictive specialization.
 
 Define the scale-free accessibility margin
 
@@ -149,7 +149,37 @@ For the fixture's `lambda=-0.1` mode,
 
 The regression test checks the exact autograd pressure on both sides: amplitude `0.39` gives at least one positive routing pressure, while `0.42` gives none.
 
-This barrier also explains a scratch SGD pilot: with the decoder frozen and otherwise identical settings, amplitude `0.39` escaped the collapsed hard table while `0.42` remained collapsed over the same finite optimization window. The repository treats the exact pressure sign, not that optimizer step count, as the theorem-level claim.
+### Initialization scale as an exact spectral gate
+
+Equivalently, let `u=epsilon/2` be the decoder logit half-gap. The accessibility boundary can be written as a source-independent cutoff
+
+\[
+\boxed{
+\lambda_c(u)=\frac{\log\cosh u}{u}.
+}
+\]
+
+A Walsh predictive mode is locally accessible exactly when
+
+\[
+|\lambda|>\lambda_c(u).
+\]
+
+The cutoff starts at zero for infinitesimal decoder contrast and rises monotonically toward one as the contrast grows. Thus decoder initialization scale does more than add exploration noise: it determines which predictive modes have any local gradient route into an unused memory state.
+
+The fixture has nontrivial mode magnitudes `0.5`, `0.2`, and `0.1`. The exact autograd phase grid is:
+
+| decoder amplitude `epsilon` | accessible `|lambda|` modes |
+|---:|---|
+| 0.2 | 0.5, 0.2, 0.1 |
+| 0.5 | 0.5, 0.2 |
+| 0.9 | 0.5 |
+| 1.5 | 0.5 |
+| 2.5 | none |
+
+All 15 mode/amplitude classifications are frozen in the regression suite.
+
+This creates a precise tradeoff. Very small asymmetry leaves many predictive modes accessible but produces weak gradients. Larger asymmetry strengthens some directions while cutting off weaker predictive modes altogether. That distinction is more informative than treating random decoder initialization as an unspecified optimization detail.
 
 ## Four-mode regression fixture
 
