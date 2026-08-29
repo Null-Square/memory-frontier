@@ -36,6 +36,12 @@ from .landscape import (
     table_from_signature,
     table_signature,
 )
+from .spectral import (
+    collapsed_one_contrast_pressure_scale,
+    is_doubly_stochastic,
+    observable_markov_source,
+    predict_centered_collapsed_pressure,
+)
 from .witnesses import four_state_aliasing_witness, horizon_switch_witness
 
 __all__ = [
@@ -53,6 +59,7 @@ __all__ = [
     "best_finite_horizon_deterministic_controller",
     "best_recursive_quotient",
     "best_static_partition",
+    "collapsed_one_contrast_pressure_scale",
     "controller_average_occupancy",
     "controller_finite_horizon_log_loss",
     "controller_log_loss",
@@ -62,9 +69,12 @@ __all__ = [
     "finite_horizon_hard_landscape",
     "four_state_aliasing_witness",
     "horizon_switch_witness",
+    "is_doubly_stochastic",
     "is_exactly_synchronizing",
     "is_strongly_connected",
+    "observable_markov_source",
     "one_edit_tables",
+    "predict_centered_collapsed_pressure",
     "random_synchronizing_source",
     "source_stationary_distribution",
     "table_from_signature",
