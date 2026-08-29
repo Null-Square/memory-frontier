@@ -11,6 +11,12 @@ from .core import (
     controller_log_loss,
     source_stationary_distribution,
 )
+from .counterfactual import (
+    predict_self_loop_centered_rescaled_pressure,
+    predict_self_loop_counterfactual_pressure,
+    stationary_token_lag_conditionals,
+    transition_pair_jacobian_scale,
+)
 from .delayed import (
     delayed_repeat_entropy_rate,
     delayed_repeat_source,
@@ -99,6 +105,8 @@ __all__ = [
     "one_edit_tables",
     "predict_centered_collapsed_pressure",
     "predict_raw_collapsed_pressure",
+    "predict_self_loop_centered_rescaled_pressure",
+    "predict_self_loop_counterfactual_pressure",
     "predict_stationary_centered_rescaled_pressure",
     "predict_stationary_raw_collapsed_pressure",
     "predict_unifilar_centered_rescaled_pressure",
@@ -106,11 +114,13 @@ __all__ = [
     "random_synchronizing_source",
     "source_stationary_distribution",
     "stationary_collapsed_pressure_accessibility_margin",
+    "stationary_token_lag_conditionals",
     "stationary_token_markovization",
     "table_from_signature",
     "table_signature",
     "theory_card",
     "theory_card_json",
+    "transition_pair_jacobian_scale",
     "two_level_accessibility_cutoff",
     "unifilar_collapsed_pressure_accessibility_margin",
 ]
