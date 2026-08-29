@@ -1,0 +1,96 @@
+{
+  "generator": {
+    "alphabet_size": 2,
+    "emission_floor": 0.05,
+    "memory_states": 2,
+    "min_emission_l1_distance": 0.05,
+    "n_states": 4,
+    "selection": "first source in generator stream satisfying each fixed rule"
+  },
+  "rules": {
+    "aliasing": "tau <= 0.01 and alpha >= 0.12 and distinct_loss_gap >= 0.003",
+    "both": "tau >= 0.10 and alpha >= 0.10 and distinct_loss_gap >= 0.003",
+    "control": "tau <= 0.01 and alpha <= 0.01 and distinct_loss_gap >= 0.003",
+    "horizon_switch": "best T=4 signature != best T=32 signature and both distinct_loss_gap >= 0.003",
+    "realizability": "tau >= 0.12 and alpha <= 0.01 and distinct_loss_gap >= 0.003"
+  },
+  "schema_version": 1,
+  "selection_seed": 260829,
+  "sources": {
+    "aliasing": {
+      "deterministic_alias_entropy": 0.014082923946064672,
+      "deterministic_to_quotient_gap": 0.1321492871533262,
+      "distinct_loss_gap": 0.057031659194934525,
+      "emissions": [[0.09715534435463663, 0.9028446556453634], [0.448266005927227, 0.5517339940727732], [0.9007701518395639, 0.09922984816043623], [0.37704364532639056, 0.6229563546736094]],
+      "source_sha256": "28a2ab92f084e01ccf7f897490f1877f6352baa599f9fe65f418967cedb8a29f",
+      "static_to_deterministic_gap": 0.0068118209934682206,
+      "stream_index": 71,
+      "synchronizing_word": [0, 1],
+      "theory_card_sha256": "ca03f57323f0dae760b31293f0146310a62801b28841f6026490a432a8507c28",
+      "transitions": [[0, 3], [2, 0], [2, 3], [2, 1]]
+    },
+    "both": {
+      "deterministic_alias_entropy": 0.25403082916130104,
+      "deterministic_to_quotient_gap": 0.24105783347638793,
+      "distinct_loss_gap": 0.02628803690532383,
+      "emissions": [[0.060156842553723985, 0.9398431574462761], [0.5870532281713567, 0.41294677182864337], [0.9433284734060202, 0.05667152659397992], [0.3341975472325452, 0.665802452767455]],
+      "source_sha256": "78224573d6ea2f60752d20214489ddc4ff10e25cbc73024bdcf040c72f158681",
+      "static_to_deterministic_gap": 0.10912257445556961,
+      "stream_index": 23,
+      "synchronizing_word": [1, 1, 0, 0, 1, 1],
+      "theory_card_sha256": "908a262f65aadecee193abe7b0ac795b0a0cb3bbc385b88b0be2478393cc1e2f",
+      "transitions": [[1, 2], [2, 1], [0, 3], [1, 3]]
+    },
+    "control": {
+      "deterministic_alias_entropy": 0.0,
+      "deterministic_to_quotient_gap": 0.0,
+      "distinct_loss_gap": 0.05908106667392232,
+      "emissions": [[0.8547432168014155, 0.14525678319858465], [0.0700254550124447, 0.9299745449875554], [0.33834375752617923, 0.6616562424738207], [0.5837508498380138, 0.41624915016198616]],
+      "source_sha256": "cbe59d99ae33332ac4b89b26d92548bc83c8cfe286b823deae5780b086a78e13",
+      "static_to_deterministic_gap": 0.002610360292670144,
+      "stream_index": 1,
+      "synchronizing_word": [1, 1],
+      "theory_card_sha256": "dac70c064769c13a4a3a6e48eb06a98904618a3b14eda100f58bf720c703f087",
+      "transitions": [[2, 3], [3, 0], [0, 0], [1, 3]]
+    },
+    "horizon_switch": {
+      "T32": {
+        "canonical_signature": [0, 0, 1, 0, 0],
+        "distinct_loss_gap": 0.006225027037423114,
+        "initial_memory": 0,
+        "loss": 0.6074525777599251,
+        "transition_table": [[0, 1], [0, 0]]
+      },
+      "T4": {
+        "canonical_signature": [0, 0, 1, 0, 1],
+        "distinct_loss_gap": 0.0038148608686763286,
+        "initial_memory": 0,
+        "loss": 0.627087323901246,
+        "transition_table": [[0, 1], [0, 1]]
+      },
+      "deterministic_alias_entropy": 0.08991322519311917,
+      "deterministic_to_quotient_gap": 0.0519131185487377,
+      "distinct_loss_gap": 0.008419602387221059,
+      "emissions": [[0.1744377091152322, 0.8255622908847677], [0.7532082665358947, 0.2467917334641055], [0.570424639288503, 0.4295753607114971], [0.36152540181608567, 0.6384745981839145]],
+      "finite_horizon_card_sha256": "623e76ebecd136113dd33bdb2ff571e9e9509bf2ef1c01d534e1fda5e2bde4ad",
+      "source_sha256": "67359475e687127ca88e43b70cae8313a750634733f4f0fac7ba54d90705273d",
+      "static_to_deterministic_gap": 0.009957663652918614,
+      "stream_index": 9,
+      "synchronizing_word": [0, 1, 0],
+      "theory_card_sha256": "d597fbb3364f3e3070d8fcbf0704d773095017b1c86843fae1842598a81ad02b",
+      "transitions": [[0, 1], [1, 3], [1, 0], [1, 2]]
+    },
+    "realizability": {
+      "deterministic_alias_entropy": 0.4735816789314735,
+      "deterministic_to_quotient_gap": 0.00999194116491997,
+      "distinct_loss_gap": 0.0045750989990097635,
+      "emissions": [[0.34079103410092787, 0.6592089658990722], [0.19689027028049305, 0.8031097297195071], [0.8138298413108669, 0.18617015868913328], [0.9002729147075447, 0.09972708529245544]],
+      "source_sha256": "a9f1f5dfcaefb30bd5b7fb74fc6e55fdc39ac926ac011604ddf3d00386aa7a76",
+      "static_to_deterministic_gap": 0.13836384515357636,
+      "stream_index": 114,
+      "synchronizing_word": [0, 1, 0, 0, 1, 0],
+      "theory_card_sha256": "01e4a7786dc79abf967691b375eb28761902852efdb7a6f34d8461e4bf5787d8",
+      "transitions": [[3, 2], [3, 3], [0, 1], [2, 0]]
+    }
+  }
+}
