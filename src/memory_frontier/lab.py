@@ -187,24 +187,41 @@ class ControllerSpectrum:
     classes: tuple[ControllerClass, ...]
     labeled_count: int
 
+    def best_loss(self) -> float:
+        return min(c.loss for c in self.classes)
+
     @property
     def optimum(self) -> ControllerClass:
-        return self.classes[0]
+        """Canonical representative of the numerically tied optimal class set.
+
+        Raw linear-algebra noise at ~1e-16 must not decide which discrete
+        controller is reported. Classes within 1e-12 of the minimum are treated
+        as scientifically tied; the lexicographically smallest canonical
+        signature is the deterministic representative.
+        """
+        candidates = self.optimal_classes()
+        return min(candidates, key=lambda c: c.signature)
 
     def optimal_classes(self, *, atol: float = 1e-12) -> tuple[ControllerClass, ...]:
-        best = self.optimum.loss
-        return tuple(c for c in self.classes if abs(c.loss - best) <= atol)
+        best = self.best_loss()
+        return tuple(
+            sorted(
+                (c for c in self.classes if abs(c.loss - best) <= atol),
+                key=lambda c: c.signature,
+            )
+        )
 
     def runner_up(self, *, atol: float = 1e-12) -> ControllerClass | None:
-        best = self.optimum.loss
-        return next((c for c in self.classes if c.loss > best + atol), None)
+        best = self.best_loss()
+        candidates = [c for c in self.classes if c.loss > best + atol]
+        return min(candidates, key=lambda c: (c.loss, c.signature)) if candidates else None
 
     def relabel_class_gap(self, *, atol: float = 1e-12) -> float:
         runner = self.runner_up(atol=atol)
-        return inf if runner is None else runner.loss - self.optimum.loss
+        return inf if runner is None else runner.loss - self.best_loss()
 
     def near_optimal_class_count(self, epsilon: float) -> int:
-        best = self.optimum.loss
+        best = self.best_loss()
         return sum(c.loss <= best + epsilon for c in self.classes)
 
     def distinct_loss_levels(self, *, atol: float = 1e-12) -> tuple[float, ...]:
