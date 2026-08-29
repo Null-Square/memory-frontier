@@ -97,6 +97,18 @@ T>=4 -> [[0,1],[0,1]]  (last-symbol memory, for the tested horizons)
 
 These are precomputable algorithm-level predictions for later neural experiments.
 
+## Exact optimization landscape
+
+For fixed `(source,K,T,m0)`, `finite_horizon_hard_landscape` constructs the complete graph of deterministic algorithms. Nodes are transition tables and directed edges alter exactly one transition target. Every node and edge is scored with exact finite-horizon expected log loss.
+
+At binary `K=2` the graph has 16 nodes and 64 directed one-edit edges, so global minima, one-edit local minima, exact improvement directions, and loss gaps are fully enumerable.
+
+The optional Torch module adds a hard-forward straight-through learner and a **canonical STE field** for comparing gradient direction with exact one-edit finite differences. The convention is explicit: occupied memory states use their hard-controller Bayes readout and unoccupied states use the source marginal. This avoids silently differentiating through an undefined readout optimum at zero occupancy.
+
+On the four-state witness at `K=2,T=32`, the exact hard optimum has two transition decisions whose canonical straight-through pressure points opposite to the exact one-edit direction across tested logit margins `0.05..4.0`. By contrast, the frozen horizon-switch source's `T=32` optimum is fully aligned under the same convention. See [`docs/optimization.md`](docs/optimization.md).
+
+The exact-distribution learner carries a literal hard categorical memory state and never samples token sequences: it propagates `P(S_t,M_t)` analytically while using a straight-through Jacobian only for the memory transition. Batched random seeds have disjoint parameters and are batched only for speed.
+
 ## Theory cards
 
 `theory_card(source, K)` records and hashes the pre-training ground truth, including:
@@ -120,6 +132,14 @@ python examples/witness_horizon_report.py
 python examples/scan_sources.py --count 500 --states 4 --memory 2
 ```
 
+Optional optimization experiments:
+
+```bash
+python -m pip install -e '.[dev,optimization]'
+pytest -q tests/test_surrogate.py
+python examples/ste_reference_report.py
+```
+
 ## Research discipline
 
 1. Derive and freeze exact oracle results before neural training.
@@ -129,7 +149,8 @@ python examples/scan_sources.py --count 500 --states 4 --memory 2
 5. Treat stochastic state transitions as a separate computational resource class.
 6. Use synchronized source families and matched controls rather than arbitrary HMMs.
 7. Treat classical finite-state prediction, recursive information bottleneck, automata reduction, and predictive rate-distortion as prior foundations rather than novelty claims.
+8. State surrogate-gradient embedding/readout conventions explicitly; do not treat them as intrinsic properties of a hard table.
 
 ## Current milestone
 
-The repository now contains the hardened asymptotic oracle, exact finite-horizon oracle, synchronized random-source laboratory, controller spectra modulo memory-state relabeling, hashed theory cards, theorem notes, and verified witness experiments. Neural learners remain intentionally out of scope until the source families and oracle landscape are frozen.
+The repository now contains the hardened asymptotic and finite-horizon oracles, synchronized source lab, controller spectra, frozen reference suite, exact hard-controller landscapes, canonical straight-through diagnostics, and a batched exact-distribution hard-state learner. The next milestone is population-level testing of which exact landscape quantities predict gradient-descent algorithm recovery before scaling to larger `K` or richer neural transition functions.
