@@ -69,3 +69,44 @@ def test_symmetry_trap_can_hide_nearly_log_q_nats_of_memory_value():
     optimal_asymptotic = controller_log_loss(source, last_symbol_controller(q), 0)
     hidden_gain = np.log(q) - optimal_asymptotic
     assert hidden_gain > 0.99 * np.log(q)
+
+
+def test_binary_decoder_contrast_has_exact_opposite_transition_pressures():
+    rho = 0.1
+    horizon = 32
+    margin = 0.7
+    temperature = 0.8
+    delta = 0.02
+
+    source = symmetric_repeat_source(2, rho)
+    collapsed = np.zeros((2, 2), dtype=int)
+    transition_logits = canonical_logits(collapsed, margin=margin).detach().cpu().numpy()
+    # Decoder row log-odds are -delta and +delta respectively.
+    readout_logits = np.array(
+        [[-delta / 2, delta / 2], [delta / 2, -delta / 2]],
+        dtype=float,
+    )
+    snapshot = exact_distribution_gradient_snapshot(
+        source,
+        transition_logits,
+        readout_logits,
+        horizon,
+        initial_memory=0,
+        temperature=temperature,
+    )
+    gradient = snapshot.transition_gradient
+    pressure_0 = gradient[0, 0, 0] - gradient[0, 0, 1]
+    pressure_1 = gradient[0, 1, 0] - gradient[0, 1, 1]
+
+    soft_current = 1.0 / (1.0 + np.exp(-margin / temperature))
+    expected = (
+        (horizon - 1)
+        / horizon
+        * soft_current
+        * (1.0 - soft_current)
+        / temperature
+        * (1.0 - 2.0 * rho)
+        * delta
+    )
+    assert abs(pressure_0 - expected) < 1e-12
+    assert abs(pressure_1 + expected) < 1e-12

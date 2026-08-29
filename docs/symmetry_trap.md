@@ -63,6 +63,38 @@ and
 
 Thus for fixed `q=2` the trap can hide almost one bit/token of useful memory, and across growing alphabets the avoidable gap grows as `log q`.
 
+## Exact binary symmetry-breaking response
+
+For `q=2`, let the transition-logit row for the currently selected target have margin `a` over the unused target, and let the backward softmax temperature be `tau`. Write
+
+\[
+s=\sigma(a/\tau).
+\]
+
+Perturb the two decoder rows antisymmetrically so their token-0-vs-token-1 log-odds are `-delta` and `+delta`. For the collapsed controller, define the straight-through descent pressure for changing the active transition after symbol `x` from memory 0 to memory 1 as
+
+\[
+P_x=g_{0,x,0}-g_{0,x,1}.
+\]
+
+Then the exact expected-gradient calculation gives
+
+\[
+P_0=\frac{T-1}{T}\frac{s(1-s)}{\tau}(1-2\rho)\,\delta,
+\]
+
+and
+
+\[
+P_1=-P_0.
+\]
+
+This is exact for the antisymmetric perturbation, not merely a first-order approximation. The identity follows because the difference in conditional cross-entropies between decoder log-odds `-delta` and `+delta` is exactly `(1-2 rho) delta`.
+
+For a persistent source (`rho < 1/2`), any nonzero decoder contrast therefore pushes the two observed symbols toward opposite memory assignments. Reversing the perturbation swaps the memory labels but preserves the specialization. The predictive correlation `(1-2 rho)` is literally the gain on this symmetry-breaking signal.
+
+At `rho=1/2`, the source has no predictive memory value and the pressure vanishes, as it should.
+
 ## Finite-horizon correction
 
 With reset memory state 0, the last-symbol controller shares memory label 0 between the initial unknown state and genuine symbol 0. Its single decoder row therefore mixes those regimes at finite `T`. `symmetric_repeat_last_symbol_finite_horizon_loss` implements the exact shared-readout correction and is regression-tested against the general finite-horizon scorer.
@@ -72,3 +104,5 @@ The transient vanishes as `T -> infinity`, recovering `h_q(rho)`.
 ## Interpretation
 
 The pathology is stronger than ordinary capacity failure: an optimal memory algorithm exists, the achievable improvement is known analytically, but first-order gradient training cannot leave the symmetric collapsed solution without an external symmetry-breaking signal. Decoder asymmetry, random initialization, code revival, entropy regularization, or other exploration mechanisms should therefore be treated as computational resources in optimizer comparisons rather than hidden implementation details.
+
+The closest adjacent literature is vector-quantization/codebook collapse, where unused codes receive sparse or zero useful updates and are often revived or reparameterized. Our narrower object is a recurrent predictive-memory system with an exactly solvable source, exact finite-state optimum, and exact gradient response, so the claim should be framed as a controlled theorem/benchmark rather than as discovery of dead discrete codes in general.
