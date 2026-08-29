@@ -1,3 +1,4 @@
+from .cards import finite_horizon_card
 from .core import (
     ControllerOptimum,
     PartitionOptimum,
@@ -45,6 +46,7 @@ __all__ = [
     "controller_log_loss",
     "deterministic_controller_spectrum",
     "find_synchronizing_word",
+    "finite_horizon_card",
     "four_state_aliasing_witness",
     "is_exactly_synchronizing",
     "is_strongly_connected",
