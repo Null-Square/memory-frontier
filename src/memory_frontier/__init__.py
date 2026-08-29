@@ -60,6 +60,11 @@ from .landscape import (
     table_from_signature,
     table_signature,
 )
+from .scaffold import (
+    binary_delay_matched_first_order_pressure_coefficient,
+    binary_dormant_chain_readout_logits,
+    dormant_chain_controller,
+)
 from .spectral import (
     collapsed_one_contrast_pressure_scale,
     collapsed_pressure_accessibility_margin,
@@ -92,12 +97,15 @@ __all__ = [
     "best_finite_horizon_deterministic_controller",
     "best_recursive_quotient",
     "best_static_partition",
+    "binary_delay_matched_first_order_pressure_coefficient",
+    "binary_dormant_chain_readout_logits",
     "collapsed_one_contrast_pressure_scale",
     "collapsed_pressure_accessibility_margin",
     "collapsed_transition_pressure_scale",
     "controller_average_occupancy",
     "controller_finite_horizon_log_loss",
     "controller_log_loss",
+    "dormant_chain_controller",
     "delayed_repeat_entropy_rate",
     "delayed_repeat_source",
     "delayed_shift_register_controller",
