@@ -27,12 +27,24 @@ from .lab import (
     theory_card,
     theory_card_json,
 )
-from .witnesses import four_state_aliasing_witness
+from .landscape import (
+    HardEdge,
+    HardLandscape,
+    HardNode,
+    finite_horizon_hard_landscape,
+    one_edit_tables,
+    table_from_signature,
+    table_signature,
+)
+from .witnesses import four_state_aliasing_witness, horizon_switch_witness
 
 __all__ = [
     "ControllerClass",
     "ControllerOptimum",
     "ControllerSpectrum",
+    "HardEdge",
+    "HardLandscape",
+    "HardNode",
     "PartitionOptimum",
     "UnifilarSource",
     "alias_entropy",
@@ -47,11 +59,16 @@ __all__ = [
     "deterministic_controller_spectrum",
     "find_synchronizing_word",
     "finite_horizon_card",
+    "finite_horizon_hard_landscape",
     "four_state_aliasing_witness",
+    "horizon_switch_witness",
     "is_exactly_synchronizing",
     "is_strongly_connected",
+    "one_edit_tables",
     "random_synchronizing_source",
     "source_stationary_distribution",
+    "table_from_signature",
+    "table_signature",
     "theory_card",
     "theory_card_json",
 ]
