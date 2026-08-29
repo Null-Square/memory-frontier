@@ -10,18 +10,46 @@ from .core import (
     controller_log_loss,
     source_stationary_distribution,
 )
+from .finite import (
+    best_finite_horizon_deterministic_controller,
+    controller_average_occupancy,
+    controller_finite_horizon_log_loss,
+)
+from .lab import (
+    ControllerClass,
+    ControllerSpectrum,
+    deterministic_controller_spectrum,
+    find_synchronizing_word,
+    is_exactly_synchronizing,
+    is_strongly_connected,
+    random_synchronizing_source,
+    theory_card,
+    theory_card_json,
+)
 from .witnesses import four_state_aliasing_witness
 
 __all__ = [
+    "ControllerClass",
     "ControllerOptimum",
+    "ControllerSpectrum",
     "PartitionOptimum",
     "UnifilarSource",
     "alias_entropy",
     "bayes_log_loss",
     "best_deterministic_controller",
+    "best_finite_horizon_deterministic_controller",
     "best_recursive_quotient",
     "best_static_partition",
+    "controller_average_occupancy",
+    "controller_finite_horizon_log_loss",
     "controller_log_loss",
+    "deterministic_controller_spectrum",
+    "find_synchronizing_word",
     "four_state_aliasing_witness",
+    "is_exactly_synchronizing",
+    "is_strongly_connected",
+    "random_synchronizing_source",
     "source_stationary_distribution",
+    "theory_card",
+    "theory_card_json",
 ]
