@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from math import exp
+from math import exp, log
 
 import numpy as np
 
@@ -36,6 +36,12 @@ def is_doubly_stochastic(matrix: np.ndarray, *, atol: float = 1e-12) -> bool:
         and np.allclose(p.sum(axis=1), 1.0, atol=atol)
         and np.allclose(p.sum(axis=0), 1.0, atol=atol)
     )
+
+
+def _log_mean_exp(values: np.ndarray) -> float:
+    values = np.asarray(values, dtype=float)
+    peak = float(np.max(values))
+    return peak + log(float(np.mean(np.exp(values - peak))))
 
 
 def collapsed_one_contrast_pressure_scale(
@@ -114,3 +120,57 @@ def predict_centered_collapsed_pressure(
         q, horizon, margin, temperature
     )
     return scale * (p @ centered)
+
+
+def predict_raw_collapsed_pressure(
+    transition_matrix: np.ndarray,
+    unused_decoder_logits: np.ndarray,
+    horizon: int,
+    margin: float,
+    temperature: float,
+) -> np.ndarray:
+    """Exact uncentered pressure when the collapsed decoder is uniform.
+
+    Decoder row 0 and every row except row 1 have zero logits (uniform token
+    distribution). Row 1 has logits ``unused_decoder_logits``. Under the same
+    collapsed-controller assumptions as ``predict_centered_collapsed_pressure``,
+
+        pressure = C * (P @ d - log(mean(exp(d))))
+
+    where the scalar log-mean-exp term is broadcast to every observed token.
+    It is the unconditional cross-entropy penalty paid by the specialized unused
+    decoder. Positive pressure favors routing that token into memory state 1.
+    """
+    p = np.asarray(transition_matrix, dtype=float)
+    d = np.asarray(unused_decoder_logits, dtype=float)
+    if not is_doubly_stochastic(p):
+        raise ValueError("transition_matrix must be doubly stochastic")
+    q = p.shape[0]
+    if d.shape != (q,):
+        raise ValueError("unused_decoder_logits must have shape (q,)")
+    scale = collapsed_one_contrast_pressure_scale(
+        q, horizon, margin, temperature
+    )
+    penalty = _log_mean_exp(d)
+    return scale * (p @ d - penalty)
+
+
+def collapsed_pressure_accessibility_margin(
+    transition_matrix: np.ndarray,
+    unused_decoder_logits: np.ndarray,
+) -> float:
+    """Margin for whether any token is pushed toward the unused memory state.
+
+    This omits the common positive STE scale, so its sign is independent of
+    horizon, transition-logit margin, and backward temperature. A positive value
+    means at least one token has positive raw descent pressure toward memory 1;
+    a non-positive value means every token is locally pushed away from it.
+    """
+    p = np.asarray(transition_matrix, dtype=float)
+    d = np.asarray(unused_decoder_logits, dtype=float)
+    if not is_doubly_stochastic(p):
+        raise ValueError("transition_matrix must be doubly stochastic")
+    q = p.shape[0]
+    if d.shape != (q,):
+        raise ValueError("unused_decoder_logits must have shape (q,)")
+    return float(np.max(p @ d) - _log_mean_exp(d))

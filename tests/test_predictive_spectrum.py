@@ -6,8 +6,10 @@ pytest.importorskip("torch")
 from memory_frontier.readout_prior import exact_distribution_gradient_snapshot
 from memory_frontier.spectral import (
     collapsed_one_contrast_pressure_scale,
+    collapsed_pressure_accessibility_margin,
     observable_markov_source,
     predict_centered_collapsed_pressure,
+    predict_raw_collapsed_pressure,
 )
 from memory_frontier.surrogate import canonical_logits
 
@@ -29,7 +31,7 @@ def _walsh_fixture():
     return transition, vectors, eigenvalues
 
 
-def _actual_centered_pressure(
+def _actual_pressure(
     transition: np.ndarray,
     decoder_contrast: np.ndarray,
     *,
@@ -52,17 +54,38 @@ def _actual_centered_pressure(
         temperature=temperature,
     )
     gradient = snapshot.transition_gradient
-    pressure = np.array(
+    return np.array(
         [gradient[0, x, 0] - gradient[0, x, 1] for x in range(q)]
     )
-    return pressure - pressure.mean()
 
 
 def test_exact_predictive_operator_law_for_finite_decoder_contrast():
     transition, _, _ = _walsh_fixture()
     contrast = np.array([0.31, -0.17, 0.44, 0.08])
     kwargs = dict(horizon=17, margin=0.7, temperature=0.8)
-    actual = _actual_centered_pressure(transition, contrast, **kwargs)
+    actual = _actual_pressure(transition, contrast, **kwargs)
+    actual -= actual.mean()
+    predicted = predict_centered_collapsed_pressure(
+        transition, contrast, **kwargs
+    )
+    np.testing.assert_allclose(actual, predicted, atol=1e-12, rtol=0.0)
+
+
+def test_exact_centered_operator_law_also_holds_for_nonnormal_source():
+    transition = np.array(
+        [
+            [0.5, 0.4, 0.1],
+            [0.2, 0.4, 0.4],
+            [0.3, 0.2, 0.5],
+        ],
+        dtype=float,
+    )
+    # Doubly stochastic but non-normal: P P^T != P^T P.
+    assert np.linalg.norm(transition @ transition.T - transition.T @ transition) > 0.05
+    contrast = np.array([0.7, -0.2, 0.1])
+    kwargs = dict(horizon=13, margin=0.8, temperature=0.9)
+    actual = _actual_pressure(transition, contrast, **kwargs)
+    actual -= actual.mean()
     predicted = predict_centered_collapsed_pressure(
         transition, contrast, **kwargs
     )
@@ -81,23 +104,45 @@ def test_predictive_eigenmodes_set_exact_pressure_amplitude_and_sign():
 
     for mode in range(1, 4):
         contrast = amplitude * vectors[:, mode]
-        actual = _actual_centered_pressure(
+        actual = _actual_pressure(
             transition,
             contrast,
             horizon=horizon,
             margin=margin,
             temperature=temperature,
         )
+        actual -= actual.mean()
         expected = scale * eigenvalues[mode] * contrast
         np.testing.assert_allclose(actual, expected, atol=1e-12, rtol=0.0)
 
-    # The negative predictive eigenvalue reverses the specialization pressure.
     negative_mode = amplitude * vectors[:, 3]
-    negative_pressure = _actual_centered_pressure(
+    negative_pressure = _actual_pressure(
         transition,
         negative_mode,
         horizon=horizon,
         margin=margin,
         temperature=temperature,
     )
+    negative_pressure -= negative_pressure.mean()
     assert float(np.dot(negative_pressure, negative_mode)) < 0.0
+
+
+def test_raw_pressure_exhibits_exact_finite_contrast_accessibility_barrier():
+    transition, vectors, _ = _walsh_fixture()
+    mode = vectors[:, 3]  # eigenvalue -0.1, entries +/- 1/2
+    kwargs = dict(horizon=8, margin=0.3, temperature=0.8)
+
+    below = 0.39 * mode
+    above = 0.42 * mode
+
+    for contrast in (below, above):
+        actual = _actual_pressure(transition, contrast, **kwargs)
+        predicted = predict_raw_collapsed_pressure(
+            transition, contrast, **kwargs
+        )
+        np.testing.assert_allclose(actual, predicted, atol=1e-12, rtol=0.0)
+
+    assert collapsed_pressure_accessibility_margin(transition, below) > 0.0
+    assert collapsed_pressure_accessibility_margin(transition, above) < 0.0
+    assert np.max(_actual_pressure(transition, below, **kwargs)) > 0.0
+    assert np.max(_actual_pressure(transition, above, **kwargs)) < 0.0

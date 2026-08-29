@@ -38,9 +38,11 @@ from .landscape import (
 )
 from .spectral import (
     collapsed_one_contrast_pressure_scale,
+    collapsed_pressure_accessibility_margin,
     is_doubly_stochastic,
     observable_markov_source,
     predict_centered_collapsed_pressure,
+    predict_raw_collapsed_pressure,
 )
 from .witnesses import four_state_aliasing_witness, horizon_switch_witness
 
@@ -60,6 +62,7 @@ __all__ = [
     "best_recursive_quotient",
     "best_static_partition",
     "collapsed_one_contrast_pressure_scale",
+    "collapsed_pressure_accessibility_margin",
     "controller_average_occupancy",
     "controller_finite_horizon_log_loss",
     "controller_log_loss",
@@ -75,6 +78,7 @@ __all__ = [
     "observable_markov_source",
     "one_edit_tables",
     "predict_centered_collapsed_pressure",
+    "predict_raw_collapsed_pressure",
     "random_synchronizing_source",
     "source_stationary_distribution",
     "table_from_signature",
