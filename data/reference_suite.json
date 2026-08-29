@@ -44,7 +44,7 @@
       "stream_index": 23,
       "synchronizing_word": [1, 1, 0, 0, 1, 1],
       "theory_card_sha256": "908a262f65aadecee193abe7b0ac795b0a0cb3bbc385b88b0be2478393cc1e2f",
-      "theory_card_scientific_sha256": "72d9fe1178a414fa3d6e82e48646e0437773c772d498ec136dcae364e25db617",
+      "theory_card_scientific_sha256": "803d64e3a8cb4fc53e96ab9fe99db22d3483de965c7d1475503f043c099af662",
       "transitions": [[1, 2], [2, 1], [0, 3], [1, 3]]
     },
     "control": {
@@ -80,7 +80,7 @@
       "distinct_loss_gap": 0.008419602387221059,
       "emissions": [[0.1744377091152322, 0.8255622908847677], [0.7532082665358947, 0.2467917334641055], [0.570424639288503, 0.4295753607114971], [0.36152540181608567, 0.6384745981839145]],
       "finite_horizon_card_sha256": "623e76ebecd136113dd33bdb2ff571e9e9509bf2ef1c01d534e1fda5e2bde4ad",
-      "finite_horizon_card_scientific_sha256": "3f68c07b1ee967998dee7b04d70eadcccbb5591cc5f034a47fab36d695d3ba23",
+      "finite_horizon_card_scientific_sha256": "08aad98606a30c15e000ad1727b53a3a8cc353adc25053b288ee601fc14a5f04",
       "source_sha256": "67359475e687127ca88e43b70cae8313a750634733f4f0fac7ba54d90705273d",
       "static_to_deterministic_gap": 0.009957663652918614,
       "stream_index": 9,
