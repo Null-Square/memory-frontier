@@ -57,3 +57,34 @@ def horizon_switch_witness() -> UnifilarSource:
         dtype=int,
     )
     return UnifilarSource(emissions, transitions)
+
+
+def balanced_markov_symmetry_trap() -> UnifilarSource:
+    """Two-state source with uniform token marginal but strong one-bit memory value.
+
+    State 0 predicts token 0 with probability 0.9 and state 1 predicts token 1
+    with probability 0.9. The emitted token becomes the next source state, so a
+    one-bit last-symbol memory is highly predictive and the source is exactly
+    synchronizing after one token. Symmetry makes the stationary token marginal
+    exactly uniform.
+
+    Consequently, a collapsed hard memory controller with all decoder logits
+    initialized to zero is at an exact joint straight-through stationary point:
+    the used decoder already equals the source marginal, the unused decoder gets
+    no data gradient, and identical decoders give zero transition gradient.
+    """
+    emissions = np.array(
+        [
+            [0.9, 0.1],
+            [0.1, 0.9],
+        ],
+        dtype=float,
+    )
+    transitions = np.array(
+        [
+            [0, 1],
+            [0, 1],
+        ],
+        dtype=int,
+    )
+    return UnifilarSource(emissions, transitions)
