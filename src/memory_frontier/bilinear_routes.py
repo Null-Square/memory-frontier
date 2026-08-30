@@ -32,6 +32,48 @@ def bilinear_route_spectrum(
     return np.linalg.svd(matrix, full_matrices=True)
 
 
+def bilinear_positive_growth_modes(
+    route_matrix: Sequence[Sequence[float]],
+) -> tuple[np.ndarray, np.ndarray]:
+    """Positive-growth eigenmodes of the bilinear gradient-flow Jacobian.
+
+    For ``L=-x.T@A@y``, the gradient-flow Jacobian is
+
+        J = [[0, A], [A.T, 0]].
+
+    If ``A=U diag(s) V.T``, every singular triplet yields a normalized positive
+    eigenvector ``[u_i; v_i]/sqrt(2)`` with eigenvalue ``s_i``. This function
+    returns ``(s, G)`` where columns of ``G`` are those growth modes, ordered by
+    decreasing singular value.
+    """
+    matrix = _route_matrix(route_matrix)
+    u, singular_values, vt = np.linalg.svd(matrix, full_matrices=False)
+    count = len(singular_values)
+    modes = np.zeros((matrix.shape[0] + matrix.shape[1], count), dtype=float)
+    modes[: matrix.shape[0]] = u[:, :count]
+    modes[matrix.shape[0] :] = vt.T[:, :count]
+    modes /= np.sqrt(2.0)
+    return singular_values, modes
+
+
+def project_symmetric_operator(
+    operator: Sequence[Sequence[float]],
+    basis: Sequence[Sequence[float]],
+) -> np.ndarray:
+    """Project a symmetric local operator onto an orthonormal mode basis."""
+    matrix = np.asarray(operator, dtype=float)
+    vectors = np.asarray(basis, dtype=float)
+    if matrix.ndim != 2 or matrix.shape[0] != matrix.shape[1]:
+        raise ValueError("operator must be square")
+    if vectors.ndim != 2 or vectors.shape[0] != matrix.shape[0]:
+        raise ValueError("basis rows must match operator dimension")
+    if not np.allclose(matrix, matrix.T, atol=1e-12):
+        raise ValueError("operator must be symmetric")
+    if not np.allclose(vectors.T @ vectors, np.eye(vectors.shape[1]), atol=1e-12):
+        raise ValueError("basis columns must be orthonormal")
+    return vectors.T @ matrix @ vectors
+
+
 def bilinear_route_modal_coordinates(
     route_matrix: Sequence[Sequence[float]],
     left: Sequence[float],
