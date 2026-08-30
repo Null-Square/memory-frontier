@@ -39,13 +39,17 @@ def _readout_from_gap(gap: float):
     return readout
 
 
+def _decoder_excess_cost(gap: float):
+    a = float(gap)
+    return math.log(math.cosh(a)) - (3.0 / 5.0) * a
+
+
 def _closed_form_route_coefficient(gap: float):
     # Reaching the suffix-01 decoder has exact finite-horizon occupancy
     # coefficient 5/42. Conditional on suffix 01, P(next=1)=4/5, so the
     # decoder excess cross-entropy relative to uniform is
     # log(cosh(a))-(3/5)a for logits (-a,+a).
-    a = float(gap)
-    return (5.0 / 42.0) * (math.log(math.cosh(a)) - (3.0 / 5.0) * a)
+    return (5.0 / 42.0) * _decoder_excess_cost(gap)
 
 
 def test_joint_decoder_transition_coefficient_has_exact_closed_form():
@@ -78,6 +82,52 @@ def test_joint_decoder_transition_coefficient_has_exact_closed_form():
         assert np.isclose(
             prewired.get((1,), 0.0), expected, atol=1e-12
         )
+
+
+def test_full_transition_polynomial_factorizes_through_decoder_excess_cost():
+    source = _second_order_pattern_source()
+    base, first, second = _pattern_controller()
+    horizon = 12
+    reference_gap = 0.4
+    reference_cost = _decoder_excess_cost(reference_gap)
+
+    for prewired in (False, True):
+        transition_base = base + second if prewired else base
+        directions = np.asarray([first]) if prewired else np.asarray([first, second])
+        reference = multivariate_controller_loss_coefficients(
+            source,
+            transition_base,
+            directions,
+            _readout_from_gap(reference_gap),
+            horizon,
+        )
+
+        occupancy_polynomial = {
+            exponent: coefficient / reference_cost
+            for exponent, coefficient in reference.items()
+            if sum(exponent) > 0 and abs(coefficient) > 1e-12
+        }
+
+        for gap in (0.1, 0.7):
+            current = multivariate_controller_loss_coefficients(
+                source,
+                transition_base,
+                directions,
+                _readout_from_gap(gap),
+                horizon,
+            )
+            cost = _decoder_excess_cost(gap)
+            for exponent, occupancy_coefficient in occupancy_polynomial.items():
+                assert np.isclose(
+                    current.get(exponent, 0.0),
+                    occupancy_coefficient * cost,
+                    atol=1e-12,
+                )
+            for exponent, coefficient in current.items():
+                if sum(exponent) == 0:
+                    continue
+                if exponent not in occupancy_polynomial:
+                    assert abs(coefficient) < 1e-12
 
 
 def test_exact_decoder_symmetry_adds_one_joint_construction_factor():
