@@ -38,6 +38,12 @@ def delayed_mse(weights: torch.Tensor, inputs: torch.Tensor) -> torch.Tensor:
     return 0.5 * torch.mean((valid - targets) ** 2)
 
 
+def exact_delayed_mse(weights: torch.Tensor) -> torch.Tensor:
+    """Closed form of ``delayed_mse`` for unit-variance binary inputs."""
+    gain = torch.prod(weights)
+    return 0.5 * (gain - 1.0) ** 2
+
+
 def binary_input(length: int = 64) -> torch.Tensor:
     generator = torch.Generator().manual_seed(20260830)
     draws = torch.randint(0, 2, (length,), generator=generator, dtype=torch.int64)
@@ -88,14 +94,16 @@ def sgd_threshold_steps(
     values = [initial_scale] * missing + [1.0] * (DEPTH - missing)
     weights = torch.tensor(values, dtype=torch.float64, requires_grad=True)
     optimizer = torch.optim.SGD([weights], lr=learning_rate)
-    inputs = binary_input()
 
     for step in range(max_steps + 1):
         gain = float(torch.prod(weights).detach())
         if gain >= gain_threshold:
             return step, gain
         optimizer.zero_grad(set_to_none=True)
-        loss = delayed_mse(weights, inputs)
+        # For the recurrent binary delay task this is exactly the same objective
+        # as ``delayed_mse`` and avoids replaying a sequence tens of thousands of
+        # times in the high-order cases.
+        loss = exact_delayed_mse(weights)
         loss.backward()
         optimizer.step()
     raise RuntimeError("threshold was not reached")
@@ -116,6 +124,7 @@ def exact_formula_check() -> None:
     for missing in range(1, DEPTH + 1):
         weights = ray_weights(missing, scale)
         loss = delayed_mse(weights, inputs)
+        exact_loss = exact_delayed_mse(weights)
         loss.backward()
         gain = scale**missing
         expected_loss = 0.5 * (1.0 - gain) ** 2
@@ -123,6 +132,8 @@ def exact_formula_check() -> None:
             math.sqrt(missing) * (1.0 - gain) * scale ** (missing - 1)
         )
         observed_grad_norm = float(torch.linalg.vector_norm(weights.grad[:missing]))
+        if not math.isclose(float(loss), float(exact_loss), rel_tol=1e-12, abs_tol=1e-14):
+            raise AssertionError("recurrent and closed-form objectives disagree")
         if not math.isclose(float(loss), expected_loss, rel_tol=1e-12, abs_tol=1e-14):
             raise AssertionError("loss formula mismatch")
         if not math.isclose(
