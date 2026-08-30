@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Mapping, Sequence
 
 import numpy as np
@@ -18,6 +19,50 @@ def _parameter_count(coefficients: Polynomial) -> int:
     if n_parameters < 1:
         raise ValueError("exponent tuples must be non-empty")
     return n_parameters
+
+
+def _evaluate_polynomial(
+    coefficients: Polynomial,
+    point: Sequence[float],
+) -> float:
+    if not coefficients:
+        return 0.0
+    n_parameters = _parameter_count(coefficients)
+    x = np.asarray(tuple(point), dtype=float)
+    if x.shape != (n_parameters,):
+        raise ValueError("point must match polynomial dimension")
+    value = 0.0
+    for exponent, coefficient in coefficients.items():
+        if any(power < 0 for power in exponent):
+            raise ValueError("exponents must be non-negative")
+        term = float(coefficient)
+        for coordinate, power in zip(x, exponent):
+            if power:
+                term *= coordinate**power
+        value += term
+    return float(value)
+
+
+def _gradient_polynomial_coefficients(
+    coefficients: Polynomial,
+) -> list[dict[tuple[int, ...], float]]:
+    n_parameters = _parameter_count(coefficients)
+    gradients: list[defaultdict[tuple[int, ...], float]] = [
+        defaultdict(float) for _ in range(n_parameters)
+    ]
+    for exponent, coefficient in coefficients.items():
+        if any(power < 0 for power in exponent):
+            raise ValueError("exponents must be non-negative")
+        c = float(coefficient)
+        if c == 0.0:
+            continue
+        for parameter, power in enumerate(exponent):
+            if power == 0:
+                continue
+            reduced = list(exponent)
+            reduced[parameter] -= 1
+            gradients[parameter][tuple(reduced)] += c * power
+    return [dict(gradient) for gradient in gradients]
 
 
 def exponent_support_matrix(
@@ -166,6 +211,98 @@ def quadratic_invariant_breaking_degree(
     if not derivative:
         return None
     return min(sum(exponent) for exponent in derivative)
+
+
+def quadratic_invariant_discretization_defect_coefficients(
+    coefficients: Polynomial,
+    weights: Sequence[float],
+    *,
+    coefficient_atol: float = 0.0,
+) -> dict[tuple[int, ...], float]:
+    """Exact finite-step defect polynomial for vanilla gradient descent.
+
+    For one step ``x_plus=x-eta*grad L(x)`` and
+
+        Q_w(x)=sum_i w_i*x_i**2,
+
+    the quadratic identity is exact:
+
+        Q_w(x_plus)-Q_w(x)
+        = eta * dQ_w/dt + eta**2 * D_w(x),
+
+    where ``dQ_w/dt`` is the continuous gradient-flow derivative and
+
+        D_w(x)=sum_i w_i*(partial_i L(x))**2.
+
+    This function returns the coefficient dictionary of ``D_w`` after exact
+    exponent aggregation. If ``Q_w`` is a continuous-time invariant, this
+    polynomial is the entire one-step violation divided by ``eta**2``.
+    """
+    n_parameters = _parameter_count(coefficients)
+    w = np.asarray(tuple(weights), dtype=float)
+    if w.shape != (n_parameters,):
+        raise ValueError("weights must match polynomial dimension")
+    atol = float(coefficient_atol)
+    if atol < 0.0:
+        raise ValueError("coefficient_atol must be non-negative")
+
+    gradients = _gradient_polynomial_coefficients(coefficients)
+    defect: defaultdict[tuple[int, ...], float] = defaultdict(float)
+    for parameter, gradient in enumerate(gradients):
+        weight = float(w[parameter])
+        if weight == 0.0:
+            continue
+        terms = list(gradient.items())
+        for exponent_a, coefficient_a in terms:
+            for exponent_b, coefficient_b in terms:
+                exponent = tuple(
+                    power_a + power_b
+                    for power_a, power_b in zip(exponent_a, exponent_b)
+                )
+                defect[exponent] += weight * coefficient_a * coefficient_b
+
+    return {
+        exponent: float(coefficient)
+        for exponent, coefficient in defect.items()
+        if abs(float(coefficient)) > atol
+    }
+
+
+def quadratic_invariant_discretization_degree(
+    coefficients: Polynomial,
+    weights: Sequence[float],
+    *,
+    coefficient_atol: float = 0.0,
+) -> int | None:
+    """First total degree of the finite-step defect polynomial ``D_w``."""
+    defect = quadratic_invariant_discretization_defect_coefficients(
+        coefficients,
+        weights,
+        coefficient_atol=coefficient_atol,
+    )
+    if not defect:
+        return None
+    return min(sum(exponent) for exponent in defect)
+
+
+def quadratic_invariant_gradient_descent_step_change(
+    coefficients: Polynomial,
+    point: Sequence[float],
+    weights: Sequence[float],
+    step_size: float,
+) -> float:
+    """Exact change in ``Q_w`` under one vanilla gradient-descent step.
+
+    The result is evaluated through the exact decomposition
+
+        delta Q = eta * dQ/dt + eta**2 * D_w.
+    """
+    eta = float(step_size)
+    derivative = quadratic_invariant_derivative(coefficients, point, weights)
+    defect = quadratic_invariant_discretization_defect_coefficients(
+        coefficients, weights
+    )
+    return eta * derivative + eta * eta * _evaluate_polynomial(defect, point)
 
 
 def quadratic_invariant_derivative(
