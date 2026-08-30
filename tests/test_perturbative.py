@@ -1,0 +1,128 @@
+import math
+
+import numpy as np
+
+from memory_frontier import UnifilarSource, delayed_repeat_source
+from memory_frontier.order_barrier import (
+    binary_chain_readout,
+    binary_soft_chain_transition,
+    smooth_controller_finite_horizon_log_loss,
+)
+from memory_frontier.perturbative import (
+    affine_controller_loss_coefficients,
+    leading_perturbative_order,
+    minimum_decoder_construction_cost,
+)
+
+
+def _evaluate(coefficients: np.ndarray, epsilon: float) -> float:
+    powers = epsilon ** np.arange(len(coefficients), dtype=float)
+    return float(np.dot(coefficients, powers))
+
+
+def _neutral_decoder_root(p_zero: float) -> float:
+    def gain(q_zero: float) -> float:
+        return (
+            math.log(2.0)
+            + p_zero * math.log(q_zero)
+            + (1.0 - p_zero) * math.log(1.0 - q_zero)
+        )
+
+    lo = p_zero
+    hi = 1.0 - 1e-14
+    for _ in range(120):
+        mid = 0.5 * (lo + hi)
+        if gain(mid) > 0.0:
+            lo = mid
+        else:
+            hi = mid
+    return 0.5 * (lo + hi)
+
+
+def test_affine_loss_polynomial_reconstructs_direct_evaluation():
+    source = delayed_repeat_source(2, 2, 0.1)
+    horizon = 9
+    base = binary_soft_chain_transition(2, 0.0)
+    direction = binary_soft_chain_transition(2, 1.0) - base
+    readout = binary_chain_readout(2, 0.4)
+    coefficients = affine_controller_loss_coefficients(
+        source, base, direction, readout, horizon
+    )
+
+    for epsilon in (0.0, 0.03, 0.2, 0.7):
+        direct = smooth_controller_finite_horizon_log_loss(
+            source, base + epsilon * direction, readout, horizon
+        )
+        assert np.isclose(_evaluate(coefficients, epsilon), direct, atol=1e-12)
+
+
+def test_chain_construction_distance_matches_generic_order():
+    for delay in (2, 3, 4, 5):
+        source = delayed_repeat_source(2, delay, 0.1)
+        horizon = delay + 8
+        base = binary_soft_chain_transition(delay, 0.0)
+        direction = binary_soft_chain_transition(delay, 1.0) - base
+        readout = binary_chain_readout(delay, 0.4)
+        coefficients = affine_controller_loss_coefficients(
+            source, base, direction, readout, horizon
+        )
+        distance = minimum_decoder_construction_cost(
+            source, base, direction, readout, horizon
+        )
+        assert distance == delay
+        assert leading_perturbative_order(coefficients, atol=1e-11) == delay
+
+
+def test_prewired_dormant_scaffold_reduces_distance_and_order_to_one():
+    delay = 4
+    source = delayed_repeat_source(2, delay, 0.1)
+    horizon = 14
+    base_links = np.ones(delay, dtype=float)
+    base_links[0] = 0.0
+    base = binary_soft_chain_transition(delay, base_links)
+    full = binary_soft_chain_transition(delay, np.ones(delay))
+    direction = full - base
+    readout = binary_chain_readout(delay, 0.4)
+    coefficients = affine_controller_loss_coefficients(
+        source, base, direction, readout, horizon
+    )
+    assert minimum_decoder_construction_cost(
+        source, base, direction, readout, horizon
+    ) == 1
+    assert leading_perturbative_order(coefficients, atol=1e-11) == 1
+
+
+def test_exact_cancellation_can_raise_order_above_structural_distance():
+    emissions = np.array(
+        [[0.9, 0.1], [0.5, 0.5], [0.5, 0.5], [0.1, 0.9]], dtype=float
+    )
+    transitions = np.array(
+        [[0, 1], [2, 3], [0, 1], [2, 3]], dtype=int
+    )
+    source = UnifilarSource(emissions, transitions)
+
+    k = 3
+    base = np.zeros((k, 2, k), dtype=float)
+    base[:, :, 0] = 1.0
+    direction = np.zeros_like(base)
+    direction[0, 0, 0] = -1.0
+    direction[0, 0, 1] = 1.0
+    direction[1, 0, 0] = -1.0
+    direction[1, 0, 2] = 1.0
+
+    readout = np.full((k, 2), 0.5, dtype=float)
+    q_neutral = _neutral_decoder_root(5.0 / 6.0)
+    readout[1] = np.array([q_neutral, 1.0 - q_neutral])
+    readout[2] = np.array([0.9, 0.1])
+
+    coefficients = affine_controller_loss_coefficients(
+        source, base, direction, readout, 10
+    )
+    distance = minimum_decoder_construction_cost(
+        source, base, direction, readout, 10
+    )
+
+    assert distance == 1
+    assert abs(coefficients[1]) < 1e-12
+    assert coefficients[2] < -0.03
+    assert leading_perturbative_order(coefficients, atol=1e-11) == 2
