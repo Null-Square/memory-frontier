@@ -246,6 +246,28 @@ The finite-memory theorem concerns the first local polynomial geometry. This not
 shows how that geometry manifests when approached through the common softmax/logit
 parameterization.
 
+## Prior-art boundary
+
+Slow convergence induced by softmax parameterization is established prior art.
+For example, Li, Wei, Chi, and Chen (*Mathematical Programming*, 2023) construct
+chain-like tabular MDPs on which softmax policy gradient requires exponential time
+to reach moderate accuracy. More recent work on alternative softargmax
+parameterizations likewise treats softmax ill-conditioning and exponential
+complexity as a motivation for changing the policy geometry.
+
+Accordingly, this note does **not** claim to discover that softmax can converge
+slowly or that policy parameterization affects optimization rates. Its narrower
+role is to connect the finite-memory **construction degree** to the local
+rare-edge boundary geometry in an exactly solvable binary-logit model. The
+quantity of interest is the degree-dependent law
+
+\[
+\tau_d^{\rm logit}\sim (Cd)^{-1}\delta^{-d}
+\]
+
+and, especially, the fact that dormant scaffolding which changes `d` still changes
+the boundary exponent one-for-one.
+
 ## Scope
 
 The formulas above are exact for a symmetric **binary-logit** parameterization of
