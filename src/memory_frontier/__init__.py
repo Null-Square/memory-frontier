@@ -9,6 +9,11 @@ from .adiabatic import (
     adiabatic_orbit,
     adiabatic_successor,
 )
+from .boundary import (
+    BoundaryCandidate,
+    BoundaryRacePrediction,
+    predict_boundary_race,
+)
 from .cards import finite_horizon_card
 from .cell_dynamics import (
     HardCellEvaluation,
@@ -113,6 +118,8 @@ from .witnesses import four_state_aliasing_witness, horizon_switch_witness
 __all__ = [
     "AdiabaticOrbit",
     "AdiabaticStep",
+    "BoundaryCandidate",
+    "BoundaryRacePrediction",
     "ControllerClass",
     "ControllerOptimum",
     "ControllerSpectrum",
@@ -170,6 +177,7 @@ __all__ = [
     "linearized_transition_gradient_from_readout_direction",
     "observable_markov_source",
     "one_edit_tables",
+    "predict_boundary_race",
     "predict_centered_collapsed_pressure",
     "predict_raw_collapsed_pressure",
     "predict_self_loop_centered_rescaled_pressure",
