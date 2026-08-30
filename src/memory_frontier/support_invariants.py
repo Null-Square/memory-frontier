@@ -98,6 +98,76 @@ def quadratic_invariant_basis(
     return vh[rank:].copy()
 
 
+def quadratic_invariant_derivative_coefficients(
+    coefficients: Polynomial,
+    weights: Sequence[float],
+    *,
+    coefficient_atol: float = 0.0,
+    orthogonality_atol: float = 0.0,
+) -> dict[tuple[int, ...], float]:
+    """Sparse polynomial for the time derivative of a quadratic balance law.
+
+    For ``Q_w(x)=sum_i w_i*x_i**2`` and Euclidean gradient flow of
+
+        L(x)=sum_alpha c_alpha*x**alpha,
+
+    the exact derivative polynomial is
+
+        dQ_w/dt = sum_alpha [-2*c_alpha*(alpha dot w)] * x**alpha.
+
+    Terms whose loss coefficient or support-weight inner product is below the
+    requested tolerance are omitted. This makes the first symmetry-breaking
+    degree directly observable after coefficient cancellation.
+    """
+    n_parameters = _parameter_count(coefficients)
+    w = np.asarray(tuple(weights), dtype=float)
+    if w.shape != (n_parameters,):
+        raise ValueError("weights must match polynomial dimension")
+    coefficient_tol = float(coefficient_atol)
+    orthogonality_tol = float(orthogonality_atol)
+    if coefficient_tol < 0.0 or orthogonality_tol < 0.0:
+        raise ValueError("tolerances must be non-negative")
+
+    derivative: dict[tuple[int, ...], float] = {}
+    for exponent, coefficient in coefficients.items():
+        if any(power < 0 for power in exponent):
+            raise ValueError("exponents must be non-negative")
+        c = float(coefficient)
+        if abs(c) <= coefficient_tol or sum(exponent) == 0:
+            continue
+        support_weight = float(np.dot(w, exponent))
+        if abs(support_weight) <= orthogonality_tol:
+            continue
+        derivative[tuple(int(power) for power in exponent)] = (
+            -2.0 * c * support_weight
+        )
+    return derivative
+
+
+def quadratic_invariant_breaking_degree(
+    coefficients: Polynomial,
+    weights: Sequence[float],
+    *,
+    coefficient_atol: float = 0.0,
+    orthogonality_atol: float = 0.0,
+) -> int | None:
+    """First total degree that breaks a candidate quadratic invariant.
+
+    Returns the minimum ``sum(alpha)`` for which the exact derivative polynomial
+    of ``Q_w`` has a nonzero monomial. Returns ``None`` when ``Q_w`` is an exact
+    invariant of the complete polynomial.
+    """
+    derivative = quadratic_invariant_derivative_coefficients(
+        coefficients,
+        weights,
+        coefficient_atol=coefficient_atol,
+        orthogonality_atol=orthogonality_atol,
+    )
+    if not derivative:
+        return None
+    return min(sum(exponent) for exponent in derivative)
+
+
 def quadratic_invariant_derivative(
     coefficients: Polynomial,
     point: Sequence[float],
