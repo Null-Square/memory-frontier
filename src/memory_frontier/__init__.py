@@ -95,6 +95,12 @@ from .landscape import (
     table_from_signature,
     table_signature,
 )
+from .order_barrier import (
+    binary_chain_readout,
+    binary_delay_chain_leading_gain_coefficient,
+    binary_soft_chain_transition,
+    smooth_controller_finite_horizon_log_loss,
+)
 from .scaffold import (
     binary_delay_matched_first_order_pressure_coefficient,
     binary_dormant_chain_readout_logits,
@@ -145,8 +151,11 @@ __all__ = [
     "best_finite_horizon_deterministic_controller",
     "best_recursive_quotient",
     "best_static_partition",
+    "binary_chain_readout",
+    "binary_delay_chain_leading_gain_coefficient",
     "binary_delay_matched_first_order_pressure_coefficient",
     "binary_dormant_chain_readout_logits",
+    "binary_soft_chain_transition",
     "build_hard_cell_oracle",
     "canonical_cell_readout",
     "collapsed_one_contrast_pressure_scale",
@@ -187,6 +196,7 @@ __all__ = [
     "predict_unifilar_centered_rescaled_pressure",
     "predict_unifilar_raw_collapsed_pressure",
     "random_synchronizing_source",
+    "smooth_controller_finite_horizon_log_loss",
     "source_stationary_distribution",
     "stationary_collapsed_pressure_accessibility_margin",
     "stationary_token_lag_conditionals",
