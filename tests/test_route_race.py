@@ -7,8 +7,11 @@ from memory_frontier.order_barrier import binary_chain_readout
 from memory_frontier.perturbative import multivariate_controller_loss_coefficients
 from memory_frontier.route_race import (
     evaluate_multivariate_polynomial_gradient,
+    evaluate_multivariate_polynomial_hessian,
     leading_two_link_route_times,
     multivariate_polynomial_gradient_coefficients,
+    multivariate_polynomial_hessian_coefficients,
+    quadratic_two_link_route_times,
     two_link_leading_completion_time,
 )
 
@@ -80,7 +83,7 @@ def _projected_full_polynomial_race(
     return max_steps, point, False, False
 
 
-def test_sparse_polynomial_gradient_is_exact():
+def test_sparse_polynomial_gradient_and_hessian_are_exact():
     coefficients = {
         (2, 1): 3.0,
         (0, 2): -4.0,
@@ -92,6 +95,16 @@ def test_sparse_polynomial_gradient_is_exact():
     assert np.allclose(
         evaluate_multivariate_polynomial_gradient(coefficients, [2.0, 3.0]),
         [36.0, -12.0],
+    )
+
+    hessian = multivariate_polynomial_hessian_coefficients(coefficients)
+    assert hessian[0][0] == {(0, 1): 6.0}
+    assert hessian[0][1] == {(1, 0): 6.0}
+    assert hessian[1][0] == {(1, 0): 6.0}
+    assert hessian[1][1] == {(0, 0): -8.0}
+    assert np.allclose(
+        evaluate_multivariate_polynomial_hessian(coefficients, [2.0, 3.0]),
+        [[18.0, 12.0], [12.0, -8.0]],
     )
 
 
@@ -145,6 +158,27 @@ def test_leading_gradient_route_time_predicts_full_polynomial_winner_a():
     routes = leading_two_link_route_times(coefficients, point, 0.02)
     assert [route[0] for route in routes[:2]] == [(0, 1), (2, 3)]
     assert routes[0][2] < routes[1][2]
+
+    steps, _, route_a, route_b = _projected_full_polynomial_race(
+        coefficients, point
+    )
+    assert steps < 500
+    assert route_a
+    assert not route_b
+
+
+def test_curvature_correction_recovers_a_leading_route_race_reversal():
+    coefficients = _parallel_two_link_fixture()
+    scale = 1e-8
+    point = scale ** np.array([0.2, 1.0, 0.6, 0.2])
+
+    leading = leading_two_link_route_times(coefficients, point, 0.02)
+    assert [route[0] for route in leading[:2]] == [(2, 3), (0, 1)]
+    assert leading[0][2] < leading[1][2]
+
+    corrected = quadratic_two_link_route_times(coefficients, point, 0.02)
+    assert [route[0] for route in corrected[:2]] == [(0, 1), (2, 3)]
+    assert corrected[0][2] < corrected[1][2]
 
     steps, _, route_a, route_b = _projected_full_polynomial_race(
         coefficients, point
