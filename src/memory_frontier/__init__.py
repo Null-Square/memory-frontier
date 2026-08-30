@@ -31,6 +31,11 @@ from .delayed import (
     delayed_repeat_source,
     delayed_shift_register_controller,
 )
+from .edit_alignment import (
+    EditAlignmentOperators,
+    EditDirection,
+    edit_alignment_operators,
+)
 from .exact_gradient import (
     ExactSTEGradient,
     HardValueGradient,
@@ -94,6 +99,8 @@ __all__ = [
     "ControllerOptimum",
     "ControllerSpectrum",
     "CounterfactualAccessibilityOperator",
+    "EditAlignmentOperators",
+    "EditDirection",
     "ExactSTEGradient",
     "GradientAccessibilityOperator",
     "HardEdge",
@@ -122,6 +129,7 @@ __all__ = [
     "delayed_repeat_source",
     "delayed_shift_register_controller",
     "deterministic_controller_spectrum",
+    "edit_alignment_operators",
     "exact_ste_gradient",
     "find_synchronizing_word",
     "finite_horizon_card",
