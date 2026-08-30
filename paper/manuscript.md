@@ -1,87 +1,81 @@
 # Same Predictor, Different Learnability: Construction Order in Finite-State Memory
 
-> **Working manuscript draft.** This file is intended to become the main paper,
-> not a catalogue of repository results. Proof details and secondary results will
-> be moved to appendices during the next pass.
+> **Manuscript v2.** This version incorporates the final related-work audit, the
+> smooth linear-state-space validation, and the simplex-boundary/softmax analysis.
+> Its main conceptual change from v1 is to separate the structural construction
+> order from the parameterization-dependent map from local homogeneity to
+> optimization time.
 
 ## Abstract
 
-A finite-memory architecture may have enough capacity to implement a predictive
-computation while gradient-based learning is locally unable to construct it. We
+A memory architecture can have enough predictive capacity to implement a useful
+computation while local optimization is poorly positioned to construct it. We
 make this distinction exact for finite-state memory predictors. Around an affine
-controller transition family, the finite-horizon prediction loss is polynomial in
-local transition strengths. We introduce three notions of **construction order**:
-(1) a source-valid support cost, the minimum number of missing transition factors
-needed to reach a different predictive readout class; (2) an exact quotient
-occupancy-operator order; and (3) the first nonzero degree of the scalar loss. We
-prove
+controller transition family, finite-horizon prediction loss is an exact
+multivariate polynomial in local transition strengths. We define three local
+construction orders: a source-valid support cost, the first nonzero quotient
+occupancy-operator degree, and the first nonconstant scalar-loss degree. In the
+construction-origin regime we prove
 
 \[
 d_{\rm support}\le d_{\rm operator}\le d_{\rm loss},
 \]
 
-with the two possible gaps corresponding respectively to signed path cancellation
-and decoder cancellation. Generically, these orders coincide.
+and factor every scalar coefficient as
 
-We then prove a source-aware forward-equivalence theorem: changing transition rows
-that cannot be exercised by the current source-memory process leaves the complete
-finite-horizon occupancy process, and hence the current predictor for every fixed
-decoder, unchanged. Nevertheless, such behaviorally dormant rewiring can change
-construction order. A single exact forward-equivalence class with fixed source,
-architecture, decoder, reachable dynamics, horizon, and trainable transition
-directions realizes orders one through five under random dormant topology.
+\[
+c_\alpha=-\langle G_\alpha,\log q\rangle.
+\]
 
-Construction order has a direct dynamical consequence. For an isolated leading
-construction of degree \(d\), known homogeneous-flow dynamics give finite bootstrap
-time for \(d=1\), logarithmic divergence for \(d=2\), and
-\(\Theta(\delta^{-(d-2)})\) divergence for \(d\ge3\) as initialization scale
-\(\delta\to0\). Regular local reparameterizations cannot erase the scalar order
-gap, and positive diagonal conditioning changes the isolated-flow prefactor but
-not this degree-controlled asymptotic class. Finally, a smooth linear
-state-space delay model trained with ordinary autograd independently reproduces
-loss orders one through five while all compared initializations implement the
-same current zero predictor. These results separate predictive capacity and
-current behavior from **gradient accessibility**: two models can compute the same
-thing now yet expose the same future useful computation to optimization at
-radically different local orders.
+The two possible strict gaps therefore have distinct causes: source-weighted path
+cancellation and decoder cancellation. Under stated nondegeneracy conditions,
+the three orders coincide almost surely under continuous parameter choices.
+
+We next prove a source-aware forward-equivalence theorem. Rewiring transition
+rows that the current source-memory process cannot exercise leaves the complete
+finite-horizon occupancy process unchanged, and hence preserves the current
+predictor for every fixed decoder. Nevertheless, once a learned entrance makes
+those rows reachable, their dormant topology can change construction order. A
+single exact forward-equivalence class with fixed source, architecture, decoder,
+reachable dynamics, horizon, and trainable transition directions realizes orders
+one through five when only dormant zero-cost wiring is randomized.
+
+Construction order determines the leading local homogeneity of a latent
+computation, but the conversion of that homogeneity into physical optimization
+time depends on the parameterization and metric. For an isolated degree-\(d\)
+construction, Euclidean flow in affine transition probabilities gives the known
+finite/logarithmic/\(\delta^{-(d-2)}\) hierarchy, while rare-edge Euclidean softmax
+flow gives \(\Theta(\delta^{-d})\). In both geometries, reducing construction
+order by one removes an asymptotically severe bootstrap factor. Regular local
+reparameterizations preserve the scalar order, whereas the simplex boundary is a
+singular limit. Finally, an independently simulated five-link linear state-space
+memory trained with ordinary PyTorch autograd reproduces loss orders one through
+five while all compared base initializations implement exactly the same current
+zero predictor. These results separate predictive capacity and current behavior
+from **gradient accessibility**: forward-equivalent systems can expose the same
+future useful computation to learning at radically different local orders.
 
 ## 1. Introduction
 
-Memory is usually discussed as a question of representational capacity: how many
-states, dimensions, or parameters are required to encode enough history for a
-prediction task? But a trainable memory system faces another question. Even if a
-useful memory computation lies inside the architecture's capacity, **can local
-optimization see how to build it from the current parameter point?**
+Memory is usually framed as a representational question: how many states,
+dimensions, or parameters are needed to encode enough history for prediction? A
+trainable memory system faces another question. Even when a useful computation is
+inside the architecture's capacity, **at what local derivative order does the
+training objective reveal how to build it from the current parameter point?**
 
-These questions need not have the same answer.
+We call this second property **gradient accessibility**.
 
-Consider two recurrent controllers with the same number of memory states, the same
-source, the same decoder, and exactly the same trajectories from the reset state.
-Suppose their current predictions are therefore identical on every source-valid
-history. Standard forward analysis regards the two controllers as equivalent.
-Yet they can differ on transition rows that the current process never visits. If
-learning later opens an entrance into one of those dormant regions, its internal
-wiring determines how many additional missing transitions must be constructed
-before a predictive state is reached. The dormant structure is behaviorally
-irrelevant now but can determine the local derivative order of a future useful
-computation.
+Capacity, current behavior, and accessibility are not equivalent notions. Two
+controllers can have the same number of states, the same source, the same decoder,
+and exactly the same source-conditioned trajectories from their reset state. They
+can therefore implement the same current predictor. Yet they may differ on
+transition rows that are never exercised by the current process. If learning
+later opens an entrance to one of these dormant regions, the pre-existing wiring
+inside that region can determine how many additional missing transition factors
+must be constructed before a predictive state is reached.
 
-This paper formalizes that phenomenon.
-
-### 1.1 Capacity, behavior, and accessibility
-
-We separate three notions:
-
-1. **Predictive capacity:** does the architecture contain a controller that can
-   implement the useful memory computation?
-2. **Current behavior:** what source-conditioned predictor does the current
-   controller actually implement?
-3. **Gradient accessibility:** at what local derivative order does a useful
-   computation become visible to the training objective around the current
-   controller?
-
-The first two are forward notions. The third depends on counterfactual
-construction paths in parameter space.
+The dormant wiring is irrelevant to what the system computes now, but relevant
+to how the system can learn what to compute next.
 
 Our central message is
 
@@ -89,84 +83,89 @@ Our central message is
 \boxed{\text{forward equivalence does not imply accessibility equivalence}.}
 \]
 
-The claim is intentionally narrower than “the same function can have different
-optimization geometry,” which is well established for overparameterized neural
-network embeddings. It is also narrower than the observation that finite-state
-controller gradients can vanish, which has explicit prior art. The object we add
-is an exact **local first useful derivative degree** for finite-memory
-computations, together with a source-aware structural factorization and an
-intervention theorem showing how dormant topology changes that degree without
-changing the current forward process.
+This statement is intentionally narrower than several known phenomena. Finite-
+state-controller gradients can vanish or become very small near symmetric
+controllers [Aberdeen & Baxter, 2002]. Finite-horizon FSC objectives can be
+polynomial in policy parameters, and controller structure can affect their global
+polynomial degree [Boularias & Chaib-draa, 2009]. Overparameterized neural
+networks admit same-function embeddings with different local landscape geometry
+[Fukumizu et al., 2019]. Dormant neural features can activate sequentially under
+small-initialization dynamics [Kunin et al., 2025], and singular-learning work
+studies higher-order dead directions [Shirodkar, 2026].
 
-### 1.2 Contributions
+Our object is more specific: the **minimum nonconstant local degree of a particular
+latent finite-memory computation around a fixed base controller**, factored into
+source-valid construction paths, a quotient occupancy operator, and the decoder.
+The accompanying intervention theorem changes only behaviorally dormant topology
+inside a fixed current forward-equivalence class.
 
-Our main contributions are:
+### 1.1 Contributions
 
-- **Construction-order hierarchy.** We define a source-valid support construction
-  cost \(d_{\rm support}\), an exact quotient construction-operator order
-  \(d_{\rm operator}\), and the scalar loss order \(d_{\rm loss}\), and prove
-  \[
-  d_{\rm support}\le d_{\rm operator}\le d_{\rm loss}.
-  \]
-  Every scalar Taylor coefficient factors as
-  \[
-  c_\alpha=-\langle G_\alpha,\log q\rangle,
-  \]
-  which separates construction/path cancellation from decoder cancellation.
+The paper has four central results and two validation/boundary results.
 
-- **Dormant forward equivalence.** We prove that rewiring only source/horizon
-  forward-dormant controller rows preserves the complete current source-memory
-  occupancy process and therefore preserves finite-horizon prediction loss for
-  every fixed decoder. Such rewiring can nonetheless change construction order.
+1. **Construction-order hierarchy.** We define source support order
+   \(d_{\rm support}\), quotient operator order \(d_{\rm operator}\), and scalar
+   loss order \(d_{\rm loss}\), and prove
+   \[
+   d_{\rm support}\le d_{\rm operator}\le d_{\rm loss}.
+   \]
+   Every scalar coefficient factors as
+   \[
+   c_\alpha=-\langle G_\alpha,\log q\rangle,
+   \]
+   which distinguishes structural/source constraints, path cancellation, and
+   decoder cancellation.
 
-- **Same-forward order spectrum.** We construct forward-equivalent controllers
-  realizing arbitrary orders \(1,\ldots,R\). In a separate 1,000-instance audit,
-  we fix source, architecture, decoder, current reachable dynamics, horizon, and
-  the trainable direction family, vary only dormant zero-cost wiring, and recover
-  all orders one through five with zero hierarchy violations.
+2. **Dormant forward equivalence.** If two controllers agree on all
+   source/horizon forward-active rows, then their complete source-memory occupancy
+   processes agree throughout the horizon. Rewiring only dormant rows therefore
+   preserves the current predictor for every fixed decoder.
 
-- **Optimization consequence and robustness.** Once an isolated leading
-  construction has degree \(d\), standard homogeneous-flow dynamics yield a
-  finite/logarithmic/polynomial small-initialization bootstrap hierarchy. We show
-  that regular local coordinate changes preserve scalar construction order and
-  that positive diagonal conditioning changes only the metric/prefactor of the
-  isolated monomial flow, not the degree-controlled class.
+3. **Same-forward accessibility spectrum.** Dormant rewiring can alter the
+   shortest mixed zero-cost/perturbative construction paths once learning makes a
+   dormant region reachable. A deterministic family realizes arbitrary orders
+   \(1,\ldots,R\) inside one forward-equivalence class. Separately, a
+   1,000-instance census fixes the source, architecture, decoder, current
+   reachable dynamics, horizon, and trainable direction family, randomizes only
+   dormant zero-cost wiring, and obtains orders one through five with zero
+   hierarchy violations.
 
-- **Independent smooth-memory validation.** A five-state differentiable linear
-  delay model trained by ordinary PyTorch autograd exhibits exactly the same
-  order spectrum while all base initializations implement the same current
-  predictor.
+4. **Structural order versus optimization geometry.** Construction order is a
+   local homogeneity of the scalar objective and is preserved by smooth local
+   coordinate changes with nonsingular Jacobian. The map from order to physical
+   optimization time is metric dependent. We give two exact maps for isolated
+   constructions: affine probability-coordinate flow and rare-edge softmax flow.
 
-The optimization mathematics for isolated homogeneous monomials, balancedness,
-and deep-linear modes is not claimed as new. The finite-memory contribution is
-the map from latent computation topology to the local degree to which those known
-dynamics apply.
+5. **Smooth recurrent validation.** A continuous-state linear delay line trained
+   by ordinary autograd reproduces the predicted loss and gradient orders while
+   every compared base initialization has the same current predictor.
+
+6. **Scope boundary for competing routes.** Higher-order terms can reverse a
+   leading route or singular mode when the leading margin is of the same order as
+   the first neglected correction. We use these counterexamples to delimit, not
+   enlarge, the main theorem.
 
 ## 2. Finite-memory prediction setup
 
 Let \(\mathcal S\) be a finite source-state set and \(\mathcal X\) a finite
 alphabet. The source is unifilar: in source state \(s\), symbol \(x\) is emitted
-with probability \(e_s(x)\), and the next source state is a deterministic function
-\(f(s,x)\). Let \(\pi\) denote the stationary source distribution.
+with probability \(e_s(x)\), and the next source state is the deterministic value
+\(f(s,x)\). Let \(\pi\) be the stationary source distribution.
 
-A controller has finite memory states \(\mathcal M=\{1,\ldots,K\}\), reset state
+A controller has memory states \(\mathcal M=\{1,\ldots,K\}\), reset state
 \(m_0\), transition probabilities \(P(m'\mid m,x)\), and decoder distributions
-\(q_m(x)>0\). At each step, the decoder predicts the next source symbol from the
-current memory state, after which the observed symbol updates source and memory.
+\(q_m(x)>0\). Before each update, the decoder predicts the next source symbol from
+the current memory state; the observed symbol then updates source and memory.
 
 We study a local affine transition family
 
 \[
-P_\varepsilon
-=
-P_0+
-\sum_{j=1}^n\varepsilon_jD_j,
+P_\varepsilon=P_0+\sum_{j=1}^n\varepsilon_jD_j,
 \]
 
-where each direction \(D_j\) has zero row sum. The affine strengths
-\(\varepsilon_j\) are local construction coordinates. Coefficient identities may
-be read formally; when actual stochastic controllers are required we restrict to
-a sufficiently small valid neighborhood.
+where every direction \(D_j\) has zero row sum. Coefficient identities can be
+read formally; when actual stochastic controllers are needed, restrict to a
+sufficiently small valid neighborhood.
 
 Let
 
@@ -174,81 +173,65 @@ Let
 \mu_t^\varepsilon(s,m)=\Pr(S_t=s,M_t=m)
 \]
 
-denote the product occupancy before prediction at time \(t\). For horizon \(T\),
-expected log loss is
+be the source-memory occupancy before prediction at time \(t\). The finite-horizon
+log loss is
 
 \[
 L_T(\varepsilon)
-=
--\frac1T\sum_{t=0}^{T-1}
-\sum_{s,m,x}
+=-\frac1T\sum_{t=0}^{T-1}\sum_{s,m,x}
 \mu_t^\varepsilon(s,m)e_s(x)\log q_m(x).
 \]
 
-Because the controller transition is affine and the horizon is finite,
-\(L_T\) is an exact multivariate polynomial of degree at most \(T-1\). Polynomial
-finite-horizon FSC objectives have prior art; our focus is not their maximum
-degree, but the **lowest nonconstant degree around a specified base controller**.
+Because the transition family is affine and the horizon is finite,
+\(L_T\) is an exact multivariate polynomial of degree at most \(T-1\). This
+polynomiality is not our novelty claim. The object of interest is the **lowest
+nonconstant degree around the chosen base controller**.
 
-### 2.1 Occupancy coefficients as source-valid construction walks
+### 2.1 Source-valid construction walks
 
 Write the one-step product-state propagation operator as
 
 \[
-\mathcal B(\varepsilon)
-=
-\mathcal B_0+
-\sum_j\varepsilon_j\mathcal B_j.
+\mathcal B(\varepsilon)=\mathcal B_0+\sum_j\varepsilon_j\mathcal B_j.
 \]
 
 Then
 
 \[
 \mu_t^\varepsilon
-=
-\mathcal B(\varepsilon)^t\mu_0
-=
-\sum_{|\alpha|\le t}
-\varepsilon^\alpha\mu_{t,\alpha}.
+=\mathcal B(\varepsilon)^t\mu_0
+=\sum_{|\alpha|\le t}\varepsilon^\alpha\mu_{t,\alpha}.
 \]
 
-A coefficient \(\mu_{t,\alpha}\) is a signed sum over source-valid product-state
-walks containing exactly \(\alpha_j\) uses of transition direction \(D_j\), with
-all other controller factors supplied by the base transition \(P_0\).
-
-The source marginal is independent of the controller. Consequently every
-nonconstant occupancy coefficient satisfies
+Each coefficient \(\mu_{t,\alpha}\) is a signed sum over source-valid
+source-memory walks that use direction \(D_j\) exactly \(\alpha_j\) times and use
+base-controller edges for the remaining steps. The source marginal does not
+depend on the controller, so every nonconstant occupancy coefficient satisfies
 
 \[
 \sum_m\mu_{t,\alpha}(s,m)=0,
 \qquad |\alpha|>0.
 \]
 
-This conservation identity is what turns a combinatorial path lower bound into a
+This conservation identity is what converts a path-cost statement into a
 loss-order lower bound.
 
 ## 3. Construction order
 
 ### 3.1 Quotienting predictive equivalence
 
-Memory states with identical decoder rows are equivalent for the current
-prediction objective. Define
+Two memory states are readout-equivalent when their decoder rows coincide:
 
 \[
-m\sim m'
-\quad\Longleftrightarrow\quad
-q_m=q_{m'}.
+m\sim m'\Longleftrightarrow q_m=q_{m'}.
 \]
 
-Let \(\mathcal C\) be the resulting readout classes and \(q_C\) the decoder row
-of class \(C\). For each multi-index \(\alpha\), aggregate occupancy coefficients
-within classes:
+Let \(\mathcal C\) be the resulting decoder classes. For each multi-index
+\(\alpha\), aggregate occupancy coefficients within decoder classes:
 
 \[
 G_\alpha(C,x)
-=
-\frac1T\sum_{t=0}^{T-1}
-\sum_s\sum_{m\in C}
+=\frac1T\sum_{t=0}^{T-1}\sum_s\sum_{m\in C}
 \mu_{t,\alpha}(s,m)e_s(x).
 \]
 
@@ -257,140 +240,127 @@ Substitution into the loss gives the exact factorization
 \[
 \boxed{
 [\varepsilon^\alpha]L_T
-=
-c_\alpha
+=c_\alpha
 =-\sum_{C,x}G_\alpha(C,x)\log q_C(x)
 =-\langle G_\alpha,\log q\rangle.
 }
 \]
 
-This separates source/transition construction geometry from the numerical decoder
-values.
+The operator \(G_\alpha\) depends on source statistics and transition construction
+geometry; the decoder enters only through \(\log q\).
 
-### 3.2 Three orders
+### 3.2 Three local orders
 
-Let \(C_0\) be the readout class containing the reset state.
+Let \(C_0\) be the readout class containing the reset memory state.
 
-**Support construction order.** Form the source-memory product graph. A
-source-valid controller transition supplied by \(P_0\) has cost zero; a transition
-supplied by any perturbation direction has cost one. Define
-\(d_{\rm support}\) as the minimum number of perturbative factors on a source-valid
-walk, within the horizon, that reaches a memory state outside \(C_0\). We focus on
-the construction-origin regime \(d_{\rm support}\ge1\).
+**Support order.** Assign cost zero to source-valid transitions supplied by the
+base controller and cost one to transitions supplied by a perturbation direction.
+Define \(d_{\rm support}\) as the minimum perturbative cost of a source-valid walk,
+within the horizon, that reaches a memory state outside \(C_0\). We focus on the
+construction-origin regime \(d_{\rm support}\ge1\).
 
-**Operator order.** Define
-
-\[
-d_{\rm operator}
-=
-\min\{|\alpha|>0:G_\alpha\ne0\}.
-\]
-
-**Loss order.** Define
+**Operator order.**
 
 \[
-d_{\rm loss}
-=
-\min\{|\alpha|>0:c_\alpha\ne0\}.
+d_{\rm operator}=\min\{|\alpha|>0:G_\alpha\ne0\}.
 \]
 
-The three quantities answer different questions: whether a useful predictive
-class is structurally reachable with a given number of missing factors; whether
-the signed source-weighted occupancy effect survives aggregation; and whether the
-surviving effect couples to the actual decoder.
+**Loss order.**
 
-### 3.3 Main theorem
+\[
+d_{\rm loss}=\min\{|\alpha|>0:c_\alpha\ne0\}.
+\]
 
-**Theorem 1 (construction-order hierarchy).** In the construction-origin regime,
+These answer three different questions: whether a useful predictive class is
+structurally reachable with a given number of missing factors; whether the signed
+source-weighted occupancy effect survives aggregation; and whether that effect
+couples to the numerical decoder.
+
+### 3.3 Construction-order hierarchy
+
+**Theorem 1.** In the construction-origin regime,
 
 \[
 \boxed{
-d_{\rm support}
-\le d_{\rm operator}
-\le d_{\rm loss}.
+d_{\rm support}\le d_{\rm operator}\le d_{\rm loss}.
 }
 \]
 
-**Proof sketch.** If \(|\alpha|<d_{\rm support}\), no source-valid walk using that
-many perturbative factors can leave the reset decoder class. Therefore all
-coefficient occupancy outside \(C_0\) is zero. Inside \(C_0\), source-marginal
-conservation forces the aggregate nonconstant occupancy coefficient to sum to
-zero. Hence \(G_\alpha=0\), proving the first inequality. The second follows
-immediately from
-\(c_\alpha=-\langle G_\alpha,\log q\rangle\): if the operator coefficient is zero,
-so is the scalar coefficient. Full proofs are in the appendix.
+**Proof sketch.** Fix \(|\alpha|<d_{\rm support}\). No source-valid walk using that
+many perturbative factors can reach a decoder class distinct from \(C_0\), so the
+corresponding coefficient occupancy vanishes outside \(C_0\). Inside \(C_0\), the
+source-marginal conservation identity forces the aggregate nonconstant
+coefficient to cancel. Hence \(G_\alpha=0\), proving
+\(d_{\rm support}\le d_{\rm operator}\). The second inequality follows directly
+from
+\(c_\alpha=-\langle G_\alpha,\log q\rangle\).
 
-### 3.4 Why the inequalities can be strict
+The inequalities can be strict for two qualitatively different reasons.
 
-The hierarchy exposes two distinct failure modes.
+- **Path/operator cancellation:** minimal-cost construction walks exist, but their
+  signed source-weighted quotient contributions cancel, giving
+  \(d_{\rm operator}>d_{\rm support}\).
+- **Decoder cancellation:** the first nonzero operator exists, but its image is
+  annihilated by \(\log q\), giving
+  \(d_{\rm loss}>d_{\rm operator}\).
 
-If
-
-\[
-d_{\rm operator}>d_{\rm support},
-\]
-
-minimal-cost source-valid construction walks exist, but their signed contributions
-cancel after quotient aggregation. This is **path/operator cancellation**.
-
-If
-
-\[
-d_{\rm loss}>d_{\rm operator},
-\]
-
-the construction operator exists but its degree-leading image is annihilated by
-the decoder log-vector. This is **decoder cancellation**.
-
-An explicit exact fixture realizes
+An exact regression fixture realizes
 
 \[
 (d_{\rm support},d_{\rm operator},d_{\rm loss})=(1,1,2),
 \]
 
-showing that the intermediate operator level is necessary.
+so the intermediate operator level is necessary.
 
-### 3.5 Generic equality
+### 3.4 Generic equality
 
-Fix the source, transition family, horizon, and decoder equality partition, and
-suppose \(d=d_{\rm operator}<\infty\). The degree-\(d\) coefficient vector is a
-nonzero real-analytic function of the decoder probabilities through
-\(\log q\). Because a nonzero real-analytic function has a measure-zero zero set,
-continuously sampled decoder values within the fixed partition satisfy
+Fix the source, transition family, horizon, and decoder-equality partition, and
+suppose \(d=d_{\rm operator}<\infty\). At degree \(d\), the scalar coefficient
+vector is a nonzero real-analytic function of decoder probabilities through
+\(\log q\). Therefore continuously sampled decoder values in the interior of the
+fixed equality partition satisfy
 
 \[
 \boxed{d_{\rm loss}=d_{\rm operator}\quad\text{almost surely}.}
 \]
 
-A similar result holds for
+A similar conditional genericity statement holds for
 \(d_{\rm operator}=d_{\rm support}\) inside a fixed irreducible support cell,
-conditional on the degree-\(d_{\rm support}\) operator not vanishing identically
-by structural symmetry. Thus strict gaps are exact and important, but generic
-continuous parameter choices typically saturate the hierarchy.
+provided the degree-\(d_{\rm support}\) operator is not forced to vanish
+identically by structural symmetry. Under both nondegeneracy conditions,
 
-## 4. Dormant topology: same forward process, different accessibility
+\[
+\boxed{
+d_{\rm support}=d_{\rm operator}=d_{\rm loss}
+\quad\text{almost surely}.}
+\]
 
-The preceding theorem analyzes a local transition family. We next show that the
-base controller itself can be changed in ways that are **exactly invisible to the
-current forward process** yet alter the construction geometry seen after a
-perturbative entrance.
+The hierarchy remains essential because exact nongeneric cancellations are both
+possible and diagnostically interpretable.
+
+## 4. Dormant topology and forward equivalence
+
+The construction hierarchy concerns a local family around a base controller. We
+now show that the base controller can itself be modified in ways that are exactly
+invisible to the current source-conditioned forward process yet change the
+construction geometry after learning opens a new entrance.
 
 ### 4.1 Source-aware dormant rows
 
-For reference controller \(P_0\), call transition row \((m,x)\)
-**forward-active through horizon \(T\)** if for some transition step there exists
-a source state \(s\) such that the current product process has positive occupancy
-at \((s,m)\) and \(e_s(x)>0\). A row is forward-dormant otherwise.
+Call row \((m,x)\) **forward-active through horizon \(T\)** when, at some update
+step, the reference product process can occupy memory state \(m\) jointly with a
+source state that emits \(x\) with positive probability. Otherwise the row is
+**forward-dormant**.
 
-This definition is source-aware. Even a symbol-conditioned row of a reachable
-memory state can be dormant if the relevant symbol is impossible whenever that
-memory state co-occurs with the source.
+The definition is source-aware. A symbol-conditioned row of a reachable memory
+state can be dormant when that symbol is impossible whenever the source and
+memory jointly occupy the relevant configuration.
 
-### 4.2 Forward-equivalence theorem
+### 4.2 Dormant forward-equivalence theorem
 
-**Theorem 2 (source-aware dormant forward equivalence).** Let \(P_0\) and
-\(\widetilde P_0\) have the same source, reset memory, and horizon. If they agree
-on every row forward-active under \(P_0\), then
+**Theorem 2.** Suppose two controllers have the same source, reset memory, and
+horizon, and agree on every transition row that is forward-active under the
+reference controller. Then
 
 \[
 \boxed{
@@ -399,70 +369,42 @@ on every row forward-active under \(P_0\), then
 }
 \]
 
-Therefore, for every fixed decoder, they have exactly the same finite-horizon
-prediction loss.
+Consequently every fixed decoder produces exactly the same finite-horizon
+predictor and the same finite-horizon loss under the two controllers.
 
-**Proof sketch.** Both processes start from the same occupancy. Assume their
-occupancies agree at time \(t\). Any term contributing positive probability to
-\(\mu_{t+1}\) must use a row that is forward-active under the reference process,
-so both controllers use the same transition distribution on that term. Thus the
-next occupancies agree. Induction proves the result.
+**Proof sketch.** Both product processes start from the same occupancy. If their
+occupancies agree at step \(t\), any positive-probability contribution to the next
+occupancy uses a row that is forward-active under the reference process. The two
+controllers agree on that row, so their next occupancies agree. Induction gives
+the result.
 
-The theorem is stronger than equality of one scalar loss: the whole
-source-memory process is identical.
+This theorem is stronger than equality of one scalar loss: the complete
+source-memory occupancy process is identical.
 
-### 4.3 How dormant rewiring changes construction order
+### 4.3 Same forward process, different construction order
 
-The forward-equivalence theorem concerns the base process only. A perturbative
-transition direction may enter a region that is dormant at the base point. Once
-that happens, zero-cost base wiring inside the dormant region becomes available
-to the construction walk.
+A perturbative edge can make a previously dormant region reachable. The zero-cost
+base wiring already stored inside that region then determines how many additional
+perturbative factors are needed to reach a distinct decoder class. Dormant
+rewiring can therefore change \(d_{\rm support}\), and generically changes
+\(d_{\rm loss}\), without changing the current predictor.
 
-Thus a dormant rewire can alter the shortest mixed path
-
-\[
-\text{perturbative entrance}
-\;\to\;
-\text{dormant zero-cost scaffold}
-\;\to\;
-\text{predictive readout class}
-\]
-
-without altering the current process at all.
-
-For every depth \(R\), a delay-chain construction gives forward-equivalent base
-controllers with useful orders
+A deterministic delay-chain family realizes orders
 
 \[
-\boxed{1,2,\ldots,R.}
+\boxed{1,2,\ldots,R}
 \]
 
-The construction is simple: the entrance remains missing, so downstream states
-are unreachable at the base point; varying how much downstream chain is prewired
-changes how many perturbative links remain necessary after that entrance.
+inside one current forward-equivalence class. This family is an existence result;
+its direction set is chosen to realize the requested missing-prefix length.
 
-## 5. Randomized audit inside one forward-equivalence class
+A stricter 1,000-instance census fixes the source, six-state architecture,
+decoder, horizon, current reachable dynamics, and the entire trainable-direction
+family. It changes only dormant zero-cost wiring. Every sampled base controller is
+certified forward-equivalent to the same collapsed process. The exact order
+triples are
 
-A hand-built chain could be dismissed as a specially designed witness. We
-therefore performed a stricter randomized audit in which the only varying object
-is dormant topology.
-
-The experiment fixes:
-
-- one source;
-- one six-state controller architecture;
-- one decoder;
-- one current reachable collapsed controller;
-- one finite horizon;
-- the same five trainable perturbation directions.
-
-It then randomizes only zero-cost transition wiring on rows certified to be
-forward-dormant. Every sampled controller therefore belongs to the same exact
-current forward-equivalence class by Theorem 2.
-
-Across 1,000 samples, the exact construction-order oracle obtained:
-
-| exact triple | count |
+| order triple | count |
 |---|---:|
 | \((1,1,1)\) | 235 |
 | \((2,2,2)\) | 282 |
@@ -470,403 +412,398 @@ Across 1,000 samples, the exact construction-order oracle obtained:
 | \((4,4,4)\) | 155 |
 | \((5,5,5)\) | 84 |
 
-There were zero hierarchy violations.
+with zero hierarchy violations.
 
-This experiment is not a proof of genericity; the analytic genericity result is
-separate. Its role is adversarial: it shows that a broad accessibility spectrum
-does not require redesigning the current predictor, source, decoder, or trainable
-directions. Random dormant graph structure alone is sufficient.
+This isolates dormant graph topology as the only varying object and shows that a
+broad accessibility spectrum is not a hand-designed prefix-chain artifact.
 
-## 6. From construction order to bootstrap time
+## 5. From construction order to optimization time
 
-Construction order matters because a degree-\(d\) useful term generates a
-small-initialization bottleneck.
+Construction order is a property of the local scalar loss germ. Optimization
+time is a property of that loss **plus** a parameterization, metric, initialization
+protocol, and optimizer. The distinction matters most at stochastic-simplex
+boundaries.
 
-Consider an isolated beneficial square-free monomial
+We therefore state the dynamic consequence in two layers.
+
+### 5.1 Structural layer: local homogeneity
+
+Suppose the first beneficial isolated term has square-free degree \(d\):
 
 \[
-L-L_0=-C\prod_{j=1}^d\varepsilon_j,
-\qquad C>0,
+L-L_0=-C\prod_{i=1}^d p_i+\text{higher-order terms},
+\qquad C>0.
 \]
 
-and equal positive initialization \(\varepsilon_j(0)=\delta\). Symmetry reduces
-leading gradient flow to
+The integer \(d\) determines the first local homogeneity of the useful
+construction. Dormant scaffolding can reduce this integer while leaving the
+current predictor unchanged.
+
+The mapping from this degree to a wall-clock escape law is not intrinsic.
+
+### 5.2 Euclidean flow in affine probability coordinates
+
+For direct Euclidean gradient flow in the independent edge probabilities and a
+symmetric initialization \(p_i(0)=\delta\), the leading isolated dynamics reduce
+to
 
 \[
-\dot x=Cx^{d-1}.
+\dot p=Cp^{d-1}.
 \]
 
-The exact time to reach a fixed threshold \(\theta>\delta\) is
+The exact time to a fixed threshold has the familiar classes
 
 \[
-\tau_1=\frac{\theta-\delta}{C},
-\]
-
-\[
-\tau_2=\frac1C\log\frac{\theta}{\delta},
-\]
-
-and, for \(d\ge3\),
-
-\[
-\tau_d
-=
-\frac{\delta^{2-d}-\theta^{2-d}}{C(d-2)}.
-\]
-
-Hence
-
-\[
-\boxed{
-\tau_d(\delta)
+\tau_d^{\rm prob}(\delta)
 \sim
 \begin{cases}
-O(1),&d=1,\\
-O(\log(1/\delta)),&d=2,\\
-\Theta(\delta^{-(d-2)}),&d\ge3.
-\end{cases}}
+O(1), & d=1,\\
+O(\log(1/\delta)), & d=2,\\
+\Theta(\delta^{-(d-2)}), & d\ge3.
+\end{cases}
 \]
 
-The homogeneous escape law itself has prior art. Our contribution is the
-structural route from a latent finite-memory computation to the degree \(d\).
-Together with Theorem 2, this implies that behaviorally dormant rewiring can move
-an unchanged current predictor between finite, logarithmic, and polynomial
-bootstrap regimes.
+These homogeneous-flow exponents are not claimed as new general optimization
+mathematics. Their role here is to translate an exactly computed finite-memory
+construction order into a bootstrap class in a specified metric.
 
-At exact zero initialization, the distinction is sharper: an isolated first-order
-construction moves immediately, whereas an isolated degree-two-or-higher
-construction is exactly stationary until some other mechanism perturbs it.
+Positive diagonal conditioning changes the natural weighted-balanced manifold and
+the time prefactor, but leaves this isolated probability-coordinate exponent
+class unchanged.
 
-## 7. Robustness and scope
+### 5.3 Rare-edge softmax flow
 
-### 7.1 Regular local coordinates preserve scalar order
+The affine construction origin contains exact absent probabilities \(p=0\). A
+finite logit cannot represent this point: \(p=0\) corresponds to logit
+\(-\infty\). The ordinary smooth-coordinate invariance theorem therefore does not
+cover the limiting simplex boundary.
 
-One possible objection is that construction order is merely a coordinate
-artifact. Let
+For independent binary logits \(p_i=\sigma(z_i)\), Euclidean logit flow on the
+same symmetric isolated degree-\(d\) construction gives
 
 \[
-F(\varepsilon)-F(0)
-=P_d(\varepsilon)+O(\|\varepsilon\|^{d+1}),
-\qquad P_d\not\equiv0,
+\dot p=Cp^{d+1}(1-p)^2.
 \]
 
-and let \(\varepsilon=\phi(\theta)\) be a smooth local coordinate change with
-invertible Jacobian \(J=D\phi(0)\). Then
-
-\[
-F(\phi(\theta))-F(0)
-=P_d(J\theta)+O(\|\theta\|^{d+1}).
-\]
-
-Because an invertible linear map cannot annihilate a nonzero homogeneous
-polynomial,
+The exact completion time from \(\delta\) to fixed \(\theta\in(0,1)\) has a closed
+form, with boundary asymptotic
 
 \[
 \boxed{
-\operatorname{ord}_0(F\circ\phi)=\operatorname{ord}_0F.
+\tau_d^{\rm logit}(\delta,\theta)
+=\frac{1}{Cd}\delta^{-d}(1+o(1)).
 }
 \]
 
-This classical fact means that the scalar order gap between two forward-equivalent
-controllers cannot be removed by an ordinary local diffeomorphism.
+Thus the absolute escape exponent changes under the singular approach to the
+simplex boundary.
 
-Singular parameterizations are different. Under a coordinatewise power map
-\(\varepsilon_i=\theta_i^{r_i}\), the exact pullback degree becomes
-
-\[
-\min_{c_\alpha\ne0}\sum_i r_i\alpha_i.
-\]
-
-Thus singular charts can genuinely alter the apparent bootstrap order.
-
-### 7.2 Conditioning changes geometry, not the isolated degree class
-
-Ordinary Euclidean gradient flow is parameterization-dependent, so order
-invariance does not imply identical trajectories. For an isolated monomial
-\(c\prod_i x_i^{\alpha_i}\) under a positive diagonal preconditioner
-\(M=\operatorname{diag}(m_i)\), the exact invariants become
+The exponent is not a binary-sigmoid curiosity. For a full \(K\)-way softmax row
+with rare target-edge probability \(p\) and non-target probabilities \(q_a\),
 
 \[
-\frac{x_i^2}{m_i\alpha_i}
--
-\frac{x_j^2}{m_j\alpha_j}
-=\text{constant}.
+\|\nabla_zp\|^2
+=p^2\left[(1-p)^2+\sum_{a\ne *}q_a^2\right].
 \]
 
-On the corresponding metric-balanced manifold,
+Because
 
 \[
-\dot s
-=(-c)\left[\prod_i(m_i\alpha_i)^{\alpha_i/2}\right]s^{d-1},
-\qquad d=\sum_i\alpha_i.
+\frac{K}{K-1}p^2(1-p)^2
+\le \|\nabla_zp\|^2
+\le 2p^2(1-p)^2,
 \]
 
-The metric changes the balance geometry and prefactor, but not the degree-driven
-finite/logarithmic/polynomial class. We do not claim arbitrary optimizer
-invariance; degenerate metrics, adaptive optimizers, finite step size, and
-singular parameterizations can change the picture.
-
-### 7.3 Leading order needs a margin
-
-Construction order is a local theory, not a guarantee that the lowest-order route
-wins every later nonlinear competition. If the leading useful degree is \(d\) and
-the first route-distinguishing correction is degree \(p>d\), then on the local
-construction scale the normalized correction is of order
+an isolated symmetric degree-\(d\) construction still has
 
 \[
-\delta^{p-d}.
+\dot p=\Theta(p^{d+1}),
+\qquad
+\tau_d^{K\text{-softmax}}(\delta)=\Theta(\delta^{-d}),
 \]
 
-Therefore route or mode labels predicted by the leading term need a margin larger
-than this scale. We constructed exact near-tie finite-memory examples in which
-higher-order terms reverse both a scalar route winner and a nearly degenerate
-bilinear construction mode. We use these examples as scope boundaries, not as
-additional headline theorems.
+up to row-dependent constants.
 
-## 8. Independent validation in a smooth linear memory model
+Softmax optimization slowness is established prior art; this calculation is not a
+claim that softmax can be slow. It is a bridge from the finite-memory construction
+degree to a common practical parameterization.
 
-The finite-state theorem is exact but specialized. To test whether the mechanism
-survives outside finite stochastic controllers, we use a minimal differentiable
-linear state-space delay line:
+### 5.4 What remains structural
+
+The corrected interpretation is
+
+\[
+\boxed{
+\text{topology}
+\to
+\text{construction order/local homogeneity}
+\to
+\text{parameterization and metric}
+\to
+\text{optimization time}.
+}
+\]
+
+Although the absolute time exponent differs between probability and logit
+coordinates, the relative scaffold advantage remains asymptotically severe. For
+binary logits,
+
+\[
+\frac{\tau_d^{\rm logit}}{\tau_{d-1}^{\rm logit}}
+\sim \frac{d-1}{d}\delta^{-1}.
+\]
+
+Each unit reduction in construction order removes one power of rare-edge
+initialization from the bootstrap time.
+
+### 5.5 Regular coordinate changes
+
+Away from singular boundaries, construction order is not an arbitrary coordinate
+artifact. If
+
+\[
+F(\varepsilon)-F(0)=P_d(\varepsilon)+O(\|\varepsilon\|^{d+1})
+\]
+
+and \(\varepsilon=\phi(\theta)\) is smooth with nonsingular
+\(D\phi(0)=J\), then
+
+\[
+F(\phi(\theta))-F(0)=P_d(J\theta)+O(\|\theta\|^{d+1}),
+\]
+
+so
+
+\[
+\boxed{\operatorname{ord}_0(F\circ\phi)=\operatorname{ord}_0F.}
+\]
+
+The underlying function-germ fact is classical. Its role here is to show that the
+forward-equivalent order separation cannot be erased by an ordinary regular local
+chart. Singular maps and simplex-boundary limits are different and must be
+analyzed with their induced geometry.
+
+## 6. Independent smooth-memory validation
+
+The exact finite-controller theory could still be dismissed as a peculiarity of
+stochastic automata. We therefore test the mechanism in a continuous-state linear
+recurrent memory trained with ordinary PyTorch autograd.
+
+Consider a five-link scalar delay line
 
 \[
 h_{t+1,0}=w_0x_t,
 \qquad
-h_{t+1,i}=w_i h_{t,i-1},
-\quad i=1,\ldots,4.
+h_{t+1,i}=w_i h_{t,i-1},\quad i=1,\ldots,4.
 \]
 
-The final state predicts the input from five updates earlier. For binary
-unit-variance inputs, its effective delayed-memory gain is
+The output is the final state. With five multiplicative links, the valid output at
+sequence index \(t\) corresponds to the input four index steps earlier; the
+important construction object is the five-factor propagation gain
 
 \[
-g=\prod_{i=0}^4w_i,
+g=\prod_{i=0}^4w_i.
 \]
 
-and mean squared prediction loss is exactly
+For a unit-variance binary target sequence, the exact objective is
 
 \[
-L(w)=\frac12(g-1)^2.
+L=\frac12(g-1)^2.
 \]
 
-For each \(d\in\{1,\ldots,5\}\), initialize the first \(d\) weights to zero and
-all downstream weights to one. Every parameter remains trainable. Because the
-first weight is zero in every case, all five initializations implement the
-**identical zero predictor on every sequence**. They differ only in how much of
-the downstream multiplicative path is already present but behaviorally dormant.
-
-Along the equal missing-link ray
+Choose base initializations with \(d\) missing links set to zero and the remaining
+links prewired to one. Every base point has \(w_0=0\) and therefore implements the
+same current zero predictor. Along the equal small perturbation ray for the
+missing links,
 
 \[
-w_0=\cdots=w_{d-1}=\delta,
-\qquad
-w_d=\cdots=w_4=1,
+g=\delta^d
 \]
 
-we obtain exactly
+and the exact loss improvement is
 
 \[
-L(0)-L(\delta)
-=
-\delta^d-\frac12\delta^{2d},
+\boxed{
+L(0)-L(\delta)=\delta^d-\frac12\delta^{2d}.
+}
 \]
 
-and ordinary autograd gives
+The missing-link gradient norm is
 
 \[
-\|\nabla_{w_{<d}}L\|
-=
-\sqrt d(1-\delta^d)\delta^{d-1}.
+\boxed{
+\|\nabla_{\rm missing}L\|
+=\sqrt d\,(1-\delta^d)\delta^{d-1}.
+}
 \]
 
-Thus
+Therefore the predicted loss and gradient orders are exactly \(d\) and \(d-1\).
+The recurrent simulation and PyTorch autograd regressions recover orders one
+through five and zero-initialization motion only for the first-order case.
+
+A fixed-step SGD audit under one frozen optimizer configuration gives rapidly
+increasing threshold-crossing times with construction order. These step counts are
+illustrative evidence only, not a universal theorem or a new deep-linear result.
+The value of this experiment is narrower: dormant downstream prewiring changes
+local accessibility order in a smooth recurrent memory outside the finite-state
+controller formalism.
+
+## 7. When leading order is not enough
+
+Construction order identifies the first useful local homogeneity. It does not by
+itself determine which of several nearly tied computations will eventually win.
+
+Let the leading construction degree be \(d\), and suppose the first correction
+that distinguishes competing routes appears at degree \(p>d\). On the natural
+small-initialization construction scale, the normalized leading-geometry error is
+of order
 
 \[
-L(0)-L(\delta)=\Theta(\delta^d),
-\qquad
-\|\nabla_{w_{<d}}L\|=\Theta(\delta^{d-1}).
+O(\delta^{p-d}).
 \]
 
-Direct recurrent PyTorch regressions recover loss slopes one through five and
-gradient slopes zero through four. At exact zero, only the first-order case has a
-nonzero missing-link gradient.
+Consequently, a route coefficient or spectral gap comparable to this scale is not
+robust. We freeze exact finite-memory examples in which cubic corrections reverse
+the winner predicted by a quadratic shared-route model, and in which a nearly
+degenerate bilinear construction spectrum is rotated by higher-order terms.
 
-As an optimizer sanity check, ordinary SGD with missing links initialized to
-\(0.05\), prewired links to one, learning rate \(0.05\), and delayed-gain threshold
-\(0.2\) crossed the threshold after approximately
+These examples delimit the theory:
 
 \[
-4,\;43,\;361,\;3965,\;53327
+\boxed{
+\text{leading order is reliable only with an adequate leading margin}.
+}
 \]
 
-steps for orders one through five. These iteration counts are deliberately not
-presented as universal constants. Their purpose is to show that the local order
-separation persists under an ordinary finite-step optimizer in a conventional
-smooth recurrent system.
+They are not separate headline novelty claims. Classical perturbation theory and
+deep-linear singular-mode dynamics already provide the surrounding mathematical
+context.
 
-The multiplication-chain mathematics is elementary and closely related to
-known deep-linear dynamics. The validation contributes breadth, not a new theorem.
+## 8. Related work and novelty boundary
 
-## 9. Related work
+### Finite-state-controller optimization
 
-### Finite-state-controller policy gradients
+Policy-gradient methods for finite-state controllers are longstanding. Aberdeen
+and Baxter (2002) explicitly analyze zero memory gradients near undifferentiated
+controllers and motivate sparse controller structure. Braziunas and Boutilier
+(2004) discuss sequential/local-search difficulty in POMDP controllers. Boularias
+and Chaib-draa (2009) show that finite-horizon FSC/PSR objectives can be polynomial
+and relate representation structure to polynomial degree.
 
-Gradient-based learning of finite-state controllers for POMDPs predates this work.
-Aberdeen and Baxter (ICML 2002) explicitly analyze zero-gradient regions for
-internal-state policies: near-uniform internal transition and action policies can
-produce near-zero memory gradients, and under a stated symmetry condition the
-internal-state gradient vanishes exactly. They also advocate sparse controller
-transition graphs to avoid these regions. We therefore do not claim the discovery
-of zero FSC memory gradients or the usefulness of sparse internal-state graphs.
+We therefore do **not** claim that FSC gradients can vanish, that sequential
+controller structure affects optimization, or that FSC objectives can be
+polynomial. Our distinction is between a representation's global/maximal
+polynomial degree and the **minimum useful local Taylor degree around a fixed
+forward-equivalent base**, with an exact source-valid support/operator/decoder
+factorization.
 
-Boularias and Chaib-draa (ICML 2009) establish a still closer algebraic precedent:
-finite-horizon FSC and PSR values can be polynomial in policy parameters, and the
-representation can alter the polynomial's degree. For a generic fully connected
-FSC they derive high history-probability degree and discuss reducing FSC outdegree
-to reduce degree. Their analysis concerns the degree of the complete value
-polynomial. Our construction order instead concerns the **minimum nonconstant
-local degree at a specified base point**, together with the source-valid
-support/operator/loss decomposition and a dormant forward-equivalence
-intervention.
+### Same-function embeddings and dormant features
 
-Braziunas and Boutilier (AAAI 2004) identify sequential pathologies of gradient
-search for POMDP controllers and motivate stochastic local search. This is
-conceptually related to multistep constructions that are locally invisible, but
-their work does not provide our local derivative-order factorization.
+Fukumizu et al. (2019) and later embedding-principle work show that
+same-function neural-network embeddings can change flat/minimum/saddle geometry.
+Kunin et al. (2025) analyze staged activation of dormant neural features. These
+works make broad claims such as “same function, different landscape” or “dormant
+features activate in stages” inappropriate novelty statements for this paper.
 
-### Same-function embeddings and singular geometry
+Our intervention is narrower: source, architecture, decoder, current reachable
+dynamics, and—within the random census—the trainable direction family are fixed;
+only behaviorally dormant zero-cost wiring changes. The resulting object is an
+integer-valued local construction order with a finite-memory path/operator
+interpretation.
 
-Fukumizu et al. (NeurIPS 2019) and subsequent neural-network embedding work show
-that wider networks can realize the same function as narrower networks through
-replicated or inactive units while changing flat/minimum/saddle geometry. Thus
-“same function, different optimization landscape” is established prior art. Our
-intervention is narrower: within a fixed finite-memory architecture and a fixed
-source-conditioned current process, rewiring only dormant transition rows changes
-an exact computation-specific local degree.
+### Singular learning and high-order flatness
 
-Recent singular-learning work on “dead directions” assigns KL vanishing orders to
-Fisher-degenerate directions. We similarly use an order of vanishing, but derive
-it from source-valid finite-memory computation paths and quotient occupancy
-operators rather than treating arbitrary singular parameter directions.
+Singular-learning theory studies degenerate parameter directions and higher-order
+vanishing; recent work explicitly assigns orders to dead directions. We do not
+claim the abstract notion of vanishing order. We compute the order of a specified
+latent finite-memory construction and tie it to source-valid graph topology and
+readout quotient structure.
 
-### Dormant-feature and homogeneous dynamics
+### Homogeneous/deep-linear dynamics
 
-Alternating Gradient Flows and related small-initialization work describe staged
-activation of dormant neural features and predict feature-acquisition timing.
-Deep-linear/homogeneous analyses provide balancedness, singular-mode dynamics, and
-small-initialization saddle escape laws. These results motivate and support our
-dynamic interpretation, but our main theorem is upstream of those dynamics: it
-identifies the first useful local degree of a particular memory computation from
-its construction topology.
+Balancedness, singular-mode learning, and small-initialization saddle escape have
+substantial prior art, including Saxe et al. (2014). We use these dynamics after
+the finite-memory construction topology identifies the relevant degree. The
+homogeneous escape exponent itself is not a novelty claim.
 
-## 10. Limitations
+### Reparameterization and softmax geometry
 
-Our theorems deliberately concern finite-horizon finite-state memory controllers
-with affine local transition coordinates and fixed decoder equality classes.
-Several boundaries matter.
+Natural-gradient and path-geometry work establish that Euclidean optimization
+trajectories depend on parameterization. Softmax policy-gradient convergence can
+also be extremely slow in chain-like problems. Our parameterization results have
+a narrower role: regular charts preserve the scalar loss order, while the
+softmax-boundary calculation gives an explicit degree-to-time map near absent
+transition edges.
 
-First, construction order is a local quantity. Higher-order terms can determine
-which route wins when leading margins are small, and we give explicit reversal
-examples. Second, scalar loss order is invariant under regular local charts but
-not under singular parameterizations; optimizer trajectories are metric- and
-step-size-dependent even under regular charts. Third, decoder co-training can
-introduce additional required factors depending on the decoder parameterization.
-Fourth, source-aware support depends on the stated horizon and source support:
-changing either can change which rows are behaviorally dormant or which paths are
-valid.
+## 9. Limitations
 
-The linear state-space experiment shows the mechanism outside discrete
-controllers, but it is intentionally minimal. It does not establish that
-construction order is the dominant explanation of training behavior in large
-RNNs, modern state-space sequence models, or transformers. Testing that broader
-hypothesis is future work.
+The finite-state theorems are exact but deliberately local and finite-horizon.
+Several limitations should remain explicit.
 
-Finally, novelty claims are intentionally narrow. Prior work already establishes
-zero gradients in symmetric FSCs, graph/representation effects on global
-polynomial degree, same-function neural embeddings with different local geometry,
-higher-order singular directions, dormant feature activation, and homogeneous
-escape dynamics. Our claim is the finite-memory structural decomposition and
-dormant-rewire intervention described above.
+1. **Finite horizon.** The polynomial expansion is exact because the horizon is
+   finite. Infinite-horizon stationary objectives require separate control of
+   limits and mixing.
+2. **Affine transition family.** The support/operator theorem is formulated in
+   affine construction directions. The scalar loss order survives regular local
+   reparameterization, but support and operator orders remain structural objects
+   tied to the affine transition family.
+3. **Local accessibility, not global convergence.** A low construction order does
+   not guarantee global optimization success; a high order does not rule out
+   nonlocal jumps or alternate routes.
+4. **Optimizer dependence.** Construction order is structural, but physical
+   training time depends on metric, parameterization, learning-rate schedule,
+   noise, adaptive methods, and coupling among routes.
+5. **Boundary formulas.** The exact softmax antiderivative is derived for a
+   symmetric binary-logit isolated construction. The full \(K\)-way result fixes
+   the rare-edge exponent up to constants, not the exact prefactor for arbitrary
+   coupled rows.
+6. **Model scale.** The linear-SSM experiment shows that the mechanism survives
+   outside finite-state controllers, but does not establish that construction
+   order dominates optimization in large neural sequence models.
+7. **Novelty evidence.** The related-work audit found several close conceptual
+   neighbors. We found no direct prior theorem matching the source-valid
+   support/operator/dormant-rewire construction, but absence from a targeted
+   search is not proof of absolute novelty.
 
-## 11. Discussion
+## 10. Conclusion
 
-The common language of memory capacity can hide an optimization distinction.
-Two models may have the same number of states and the same current predictor, and
-even agree on every source-valid trajectory from reset, yet differ in how many
-missing computational factors must be jointly constructed before a useful
-predictive state becomes visible.
+Predictive capacity answers whether a memory architecture *can* implement a useful
+computation. Current behavior answers what it computes *now*. Neither determines
+how readily local optimization can construct a latent computation from the
+current parameter point.
 
-The construction-order hierarchy makes that distinction explicit:
+For finite-state memory, this accessibility question admits an exact local
+hierarchy:
 
 \[
-\text{source-valid topology}
-\;\longrightarrow\;
- d_{\rm support}
-\;\longrightarrow\;
- d_{\rm operator}
-\;\longrightarrow\;
- d_{\rm loss}.
+\boxed{
+d_{\rm support}\le d_{\rm operator}\le d_{\rm loss}.
+}
 \]
 
-The first arrow says which latent computation paths exist. The second tests
-whether signed path effects survive aggregation. The third tests whether the
-surviving occupancy contrast couples to the current decoder. This hierarchy
-separates structural inaccessibility from two kinds of cancellation rather than
-collapsing all zero gradients into one phenomenon.
+Behaviorally dormant topology can change these orders while leaving the entire
+current source-memory process unchanged. Randomizing only dormant wiring inside a
+single fixed forward-equivalence class produces a broad accessibility spectrum.
+The resulting scalar order is stable under ordinary local diffeomorphisms and
+reappears in a smooth linear recurrent memory.
 
-Dormant forward equivalence then supplies the key intervention. We can change the
-zero-cost topology that will become available to a future perturbative path while
-provably leaving the entire current source-memory process unchanged. In this
-sense, initialization can contain **behaviorally invisible computational
-scaffolding**. It does not improve today's predictor; it changes how optimization
-can build tomorrow's predictor.
+The dynamic consequence is best stated in two stages rather than as an
+optimizer-independent escape theorem:
 
-The dynamic consequence is potentially substantial. Changing order by one does
-not merely multiply a gradient by a constant. At small initialization it can
-change a logarithmic bottleneck into a polynomial one, or a polynomial divergence
-from \(\delta^{-1}\) to \(\delta^{-2}\), and so on. The exact finite-memory model
-lets us isolate this mechanism without confounding it with representation
-capacity or current performance.
+\[
+\boxed{
+\text{construction topology}
+\to
+\text{local construction order}
+\to
+\text{optimizer geometry}
+\to
+\text{bootstrap time}.
+}
+\]
 
-A broader design question follows: should learned-memory architectures be judged
-not only by which computations they can represent, but by the **construction
-geometry** they expose around realistic initializations? Dormant scaffolds,
-sparsity patterns, state decompositions, or structured initializations may affect
-learnability before they affect forward computation. The present work provides an
-exact finite-memory setting in which that question can be asked and answered.
-
-## 12. Conclusion
-
-Predictive capacity is not gradient accessibility. In finite-memory predictors,
-the first useful derivative degree of a latent computation can be read through a
-source-aware hierarchy of support, quotient construction operator, and scalar
-loss. Behaviorally dormant rewiring can change this degree without changing the
-current source-memory process, and the resulting order determines which known
-small-initialization bootstrap regime governs an isolated construction.
-
-The resulting separation is stronger than a vanishing-gradient observation. Two
-systems can be exactly forward-equivalent now while requiring qualitatively
-different optimization time to build the same future useful computation. A smooth
-linear state-space witness shows that the mechanism is not confined to the
-finite-controller formalism. These results suggest treating **construction order**
-as a distinct axis of learned-memory design, alongside representational capacity
-and current predictive performance.
-
-## References to resolve into BibTeX
-
-- Aberdeen, D. and Baxter, J. *Scaling Internal-State Policy-Gradient Methods for
-  POMDPs.* ICML, 2002.
-- Boularias, A. and Chaib-draa, B. *Predictive Representations for Policy Gradient
-  in POMDPs.* ICML, 2009. DOI: 10.1145/1553374.1553383.
-- Braziunas, D. and Boutilier, C. *Stochastic Local Search for POMDP Controllers.*
-  AAAI, 2004.
-- Fukumizu, K., Yamaguchi, S., Mototake, Y., and Tanaka, M. *Semi-flat minima and
-  saddle points by embedding neural networks to overparameterization.* NeurIPS,
-  2019. arXiv:1906.04868.
-- Kunin, D. et al. *Alternating Gradient Flows: A Theory of Feature Learning in
-  Two-layer Neural Networks.* 2025. arXiv:2506.06489.
-- Shirodkar, T. P. *Dead Directions: Geometric Singular Learning.* 2026.
-  arXiv:2606.05957.
-- Additional deep-linear, homogeneous-flow, singular-mode, natural-gradient, and
-  finite-state-controller references will be resolved from the repository's
-  detailed related-work audit before submission.
+Affine probability flow and rare-edge softmax flow translate the same degree into
+different absolute escape exponents, yet both retain a severe advantage for
+dormant scaffolding that lowers the order. In this sense, two systems can be
+indistinguishable as predictors and still be fundamentally different as objects
+for learning.
