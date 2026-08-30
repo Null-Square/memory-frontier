@@ -11,12 +11,16 @@ from .construction_time import (
 
 
 def _positive_exponents(exponents: Sequence[int]) -> np.ndarray:
-    values = np.asarray(tuple(exponents), dtype=int)
-    if values.ndim != 1 or values.size == 0:
+    raw = np.asarray(tuple(exponents), dtype=float)
+    if raw.ndim != 1 or raw.size == 0:
         raise ValueError("exponents must be a non-empty vector")
-    if np.any(values <= 0):
+    if (
+        not np.all(np.isfinite(raw))
+        or np.any(raw <= 0.0)
+        or np.any(raw != np.floor(raw))
+    ):
         raise ValueError("exponents must be positive integers")
-    return values
+    return raw.astype(int)
 
 
 def _positive_metric_weights(
