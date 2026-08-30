@@ -40,10 +40,9 @@ def test_exact_completion_time_has_delta_to_minus_d_asymptotic():
         leading = symmetric_logit_boundary_leading_time(
             coefficient, degree, delta
         )
-        # The leading divergence dominates increasingly strongly with degree; for
-        # d=1 the subleading logarithm is the largest correction at this delta.
-        tolerance = 3e-3 if degree == 1 else 3e-4
-        assert abs(exact / leading - 1.0) < tolerance
+        # The correction is O(delta log(1/delta)) for d=1 and O(delta) for the
+        # higher degrees in this fixed-threshold comparison.
+        assert abs(exact / leading - 1.0) < 8e-4
 
 
 def test_fitted_small_probability_time_exponents_are_degrees_one_through_five():
@@ -82,7 +81,7 @@ def test_each_unit_of_scaffolding_improves_logit_boundary_exponent_by_one():
         assert abs(rescaled - expected) < 0.01
 
 
-def test_probability_coordinate_speed_is_two_powers_larger_near_boundary():
+def test_probability_coordinate_speed_is_two_powers_smaller_under_logit_flow():
     coefficient = -0.7
     degree = 3
     probabilities = np.asarray([1e-2, 5e-3, 2.5e-3])
