@@ -21,7 +21,7 @@ measure-theoretic sense below.
 
 Fix:
 
-- the unifilar source;
+- the unifilar source with alphabet size at least two;
 - the affine controller transition family;
 - the finite horizon;
 - the partition of memory states into decoder-equality classes.
@@ -68,11 +68,13 @@ f(q)=-g^Tz(q).
 This is a real-analytic function on the product of open probability simplices.
 It is not identically zero.
 
-To see this, choose a decoder class on which `g` has a nonzero block. Holding all
-other decoder classes fixed, vary that class inside its simplex. A nonzero fixed
-vector cannot have constant inner product with `log q` over the full simplex
-interior. Equivalently, approaching a boundary coordinate for which the
-corresponding component of `g` is nonzero makes the relevant `log q_i` diverge.
+To see this, choose a decoder class on which `g` has a nonzero block. Because the
+alphabet has at least two symbols, that class has a positive-dimensional simplex
+interior. Holding all other decoder classes fixed, vary the chosen class. A
+nonzero fixed vector cannot have identically zero inner product with `log q` over
+the full simplex interior. Equivalently, approaching a boundary coordinate for
+which the corresponding component of `g` is nonzero makes the relevant
+`log q_i` diverge while the remaining coordinates can stay strictly positive.
 
 A nonzero real-analytic function has a zero set of Lebesgue measure zero in the
 connected open domain. Therefore
@@ -81,9 +83,9 @@ connected open domain. Therefore
 \Pr[f(q)=0]=0
 \]
 
-for any decoder distribution with a density on the class-simplex interior.
-Since simultaneous cancellation of every degree-`d` coefficient is a subset of
-this one coefficient's zero set,
+for any decoder distribution with a density on the product of class-simplex
+interiors. Since simultaneous cancellation of every degree-`d` coefficient is a
+subset of this one coefficient's zero set,
 
 \[
 \boxed{
@@ -99,7 +101,7 @@ d_{\mathrm{loss}}=d_{\mathrm{operator}}\quad\text{almost surely}}
 \]
 
 under continuously sampled decoder values, conditional on the fixed equality
-partition and finite operator order.
+partition, alphabet size at least two, and finite operator order.
 
 This result explains why the stratified random census saturates the second
 inequality in all tested cases while exact hand-tuned cancellation remains
