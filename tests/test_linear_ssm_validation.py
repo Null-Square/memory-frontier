@@ -58,7 +58,9 @@ def test_dormant_downstream_initialization_preserves_current_predictor() -> None
         predictions = _delay_predictions(weights, inputs)
         loss = _delayed_mse(weights, inputs)
 
-        assert torch.allclose(predictions, torch.zeros_like(predictions), atol=0.0, rtol=0.0)
+        assert torch.allclose(
+            predictions, torch.zeros_like(predictions), atol=0.0, rtol=0.0
+        )
         assert float(loss) == 0.5
         if reference_predictions is None:
             reference_predictions = predictions
@@ -99,7 +101,7 @@ def test_autograd_matches_exact_construction_order_formulas() -> None:
 def test_loss_and_gradient_scaling_recover_orders_one_through_five() -> None:
     inputs = _binary_input()
     depth = 5
-    scales = np.asarray([0.03, 0.045, 0.0675, 0.10125], dtype=float)
+    scales = np.asarray([0.01, 0.015, 0.0225, 0.03375], dtype=float)
 
     for missing in range(1, depth + 1):
         improvements = []
