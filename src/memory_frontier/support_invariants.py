@@ -25,6 +25,8 @@ def _evaluate_polynomial(
     coefficients: Polynomial,
     point: Sequence[float],
 ) -> float:
+    if not coefficients:
+        return 0.0
     n_parameters = _parameter_count(coefficients)
     x = np.asarray(tuple(point), dtype=float)
     if x.shape != (n_parameters,):
