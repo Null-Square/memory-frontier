@@ -111,6 +111,32 @@ order 5: delta^-3
 
 before higher-order polynomial corrections are included.
 
+## Scaffold speedup is not the same as instantaneous gradient speedup
+
+The earlier gradient-attenuation result says that prewiring `d-1` factors can
+improve the leading entrance-gradient scale by approximately
+
+\[
+\delta^{1-d}.
+\]
+
+Integrated construction time has a different asymptotic law. Comparing an
+order-`d` unscaffolded route against a first-order dormant-prewired route gives
+
+\[
+\frac{\tau_d}{\tau_1}
+=\Theta(\delta^{-(d-2)})
+\]
+
+for `d >= 3`, while `d=2` gives only a logarithmic ratio. Thus dormant topology
+can change the **asymptotic class** of bootstrap time:
+
+- polynomial to logarithmic when order drops to two;
+- logarithmic to finite when order drops from two to one.
+
+This is a trajectory-level sense in which dormant scaffolding acts as an
+optimization preconditioner.
+
 ## Exact zero-initialization barrier
 
 The same formulas sharpen the symmetry-trap picture. If `delta=0` exactly,
@@ -213,6 +239,30 @@ trajectory consequence changes character at degree two:
 Thus the useful hierarchy is not merely "higher order means smaller gradient."
 It predicts the asymptotic time required to bootstrap a computation under the
 leading gradient dynamics.
+
+## Prior-art boundary
+
+The monomial ODE and its small-initialization escape exponents are not claimed as
+new mathematical phenomena. Small-initialization deep-linear work already
+studies saddle-to-saddle dynamics and multiplicative layer interactions (for
+example Jacot et al., *Saddle-to-Saddle Dynamics in Deep Linear Networks*,
+arXiv:2106.15933). Recent deep nonlinear theory derives an analogous critical
+bottleneck escape-time law
+
+\[
+\tau=\Theta(\epsilon^{-(r-2)})
+\]
+
+for `r` small bottleneck layers (Rawal and DeWeese, *A Theory of Saddle Escape in
+Deep Nonlinear Networks*, arXiv:2605.01288).
+
+The finite-memory contribution is narrower: the exact finite-horizon prediction
+polynomial identifies a concrete **computational memory construction** with each
+multiplicative factor, and behaviorally dormant topology can move one fixed
+predictor through the entire order/escape-time hierarchy without changing its
+current forward function. The delay family also provides exact capacity and loss
+oracles, so the optimization-time law can be compared against the globally
+useful finite-memory computation rather than only against network depth.
 
 ## Claim boundary
 
