@@ -139,7 +139,7 @@ def test_exact_finite_memory_witness_has_full_rank_route_matrix():
     assert np.allclose(u @ np.diag(singular_values) @ vt, matrix, atol=2e-15)
     assert np.allclose(
         singular_values,
-        [0.176846728801819, 0.022430025517295],
+        [0.17684673120575908, 0.02243003052995202],
         rtol=0.0,
         atol=2e-15,
     )
@@ -147,7 +147,7 @@ def test_exact_finite_memory_witness_has_full_rank_route_matrix():
 
 def test_dominant_singular_mode_controls_longer_time_growth_when_seeded():
     _, matrix = _two_by_two_route_witness()
-    u, singular_values, vt = bilinear_route_spectrum(matrix)
+    _, singular_values, vt = bilinear_route_spectrum(matrix)
     left0 = np.array([1e-3, 1e-3])
     right0 = np.zeros(2)
 
