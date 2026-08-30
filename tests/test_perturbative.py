@@ -212,3 +212,79 @@ def test_tying_parameters_can_hide_nonzero_independent_gradients():
         source, base, direction_zero + direction_one, readout, 8
     )
     assert leading_perturbative_order(tied, atol=1e-11) is None
+
+
+def _partial_scaffold_family(delay: int, missing_prefix: int) -> tuple[np.ndarray, np.ndarray]:
+    """Same collapsed predictor, with only a prefix of chain links left missing."""
+    k = delay + 1
+    base = np.zeros((k, 2, k), dtype=float)
+    base[:, :, 0] = 1.0
+
+    # Links after the missing prefix are prewired but behaviorally unreachable,
+    # because the first link is always among the missing links.
+    for link in range(missing_prefix + 1, delay + 1):
+        state = link - 1
+        base[state, :, :] = 0.0
+        base[state, :, state + 1] = 1.0
+
+    directions = []
+    first = np.zeros_like(base)
+    first[0, 0, 0] = -1.0
+    first[0, 0, 1] = 1.0
+    directions.append(first)
+    for link in range(2, missing_prefix + 1):
+        state = link - 1
+        direction = np.zeros_like(base)
+        for symbol in range(2):
+            direction[state, symbol, 0] = -1.0
+            direction[state, symbol, state + 1] = 1.0
+        directions.append(direction)
+    return base, np.asarray(directions)
+
+
+def test_same_forward_function_realizes_every_optimization_order_one_through_delay():
+    from memory_frontier.order_barrier import (
+        binary_delay_chain_leading_gain_coefficient,
+    )
+    from memory_frontier.perturbative import (
+        leading_multivariate_total_degree,
+        multivariate_controller_loss_coefficients,
+    )
+
+    delay = 5
+    horizon = 13
+    source = delayed_repeat_source(2, delay, 0.1)
+    readout = binary_chain_readout(delay, 0.4)
+    expected_gain = binary_delay_chain_leading_gain_coefficient(
+        delay, 0.1, horizon, 0.4
+    )
+
+    for missing_prefix in range(1, delay + 1):
+        base, directions = _partial_scaffold_family(delay, missing_prefix)
+
+        # All parameter points execute the same collapsed predictor at epsilon=0:
+        # memory never leaves state 0, so the unreachable prewiring is invisible.
+        base_loss = smooth_controller_finite_horizon_log_loss(
+            source, base, readout, horizon
+        )
+        assert np.isclose(base_loss, math.log(2.0), atol=1e-12)
+
+        coefficients = multivariate_controller_loss_coefficients(
+            source,
+            base,
+            directions,
+            readout,
+            horizon,
+            max_total_degree=missing_prefix,
+        )
+        assert (
+            leading_multivariate_total_degree(coefficients, atol=1e-11)
+            == missing_prefix
+        )
+        leading_key = (1,) * missing_prefix
+        assert np.isclose(
+            coefficients[leading_key], -expected_gain, atol=1e-12
+        )
+        for exponent, coefficient in coefficients.items():
+            if 0 < sum(exponent) < missing_prefix:
+                assert abs(coefficient) < 1e-12
