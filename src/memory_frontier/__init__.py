@@ -4,6 +4,11 @@ from .accessibility import (
     linearized_transition_gradient_from_readout_direction,
 )
 from .cards import finite_horizon_card
+from .cell_dynamics import (
+    HardCellEvaluation,
+    HardCellOracle,
+    build_hard_cell_oracle,
+)
 from .core import (
     ControllerOptimum,
     PartitionOptimum,
@@ -103,6 +108,8 @@ __all__ = [
     "EditDirection",
     "ExactSTEGradient",
     "GradientAccessibilityOperator",
+    "HardCellEvaluation",
+    "HardCellOracle",
     "HardEdge",
     "HardLandscape",
     "HardNode",
@@ -117,6 +124,7 @@ __all__ = [
     "best_static_partition",
     "binary_delay_matched_first_order_pressure_coefficient",
     "binary_dormant_chain_readout_logits",
+    "build_hard_cell_oracle",
     "collapsed_one_contrast_pressure_scale",
     "collapsed_pressure_accessibility_margin",
     "collapsed_transition_pressure_scale",
