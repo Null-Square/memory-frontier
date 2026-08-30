@@ -208,3 +208,135 @@ def minimum_decoder_construction_cost(
                 best = cost
         current = next_cost
     return best
+
+
+def multivariate_controller_loss_coefficients(
+    source: UnifilarSource,
+    transition_base: np.ndarray,
+    transition_directions: np.ndarray,
+    readout: np.ndarray,
+    horizon: int,
+    initial_memory: int = 0,
+    *,
+    max_total_degree: int | None = None,
+) -> dict[tuple[int, ...], float]:
+    """Exact sparse loss polynomial for independent transition perturbations.
+
+    The transition family is
+
+        P(eps) = P0 + sum_j eps[j] * Pj.
+
+    Keys are exponent tuples ``alpha`` and values are coefficients of
+    ``prod_j eps[j]**alpha[j]``. When ``max_total_degree`` is supplied, terms of
+    higher total degree are omitted exactly from the returned truncation.
+    """
+    directions = np.asarray(transition_directions, dtype=float)
+    if directions.ndim != 4 or directions.shape[0] == 0:
+        raise ValueError(
+            "transition_directions must have shape (n_parameters, k, alphabet, k)"
+        )
+    base, _, decoder = _validate_affine_family(
+        source, transition_base, directions[0], readout
+    )
+    if directions.shape[1:] != base.shape:
+        raise ValueError("transition_directions shape mismatch")
+    if not np.allclose(directions.sum(axis=-1), 0.0, atol=1e-12):
+        raise ValueError("every transition direction row must sum to zero")
+
+    T = int(horizon)
+    if T <= 0:
+        raise ValueError("horizon must be positive")
+    k = base.shape[0]
+    if not 0 <= initial_memory < k:
+        raise ValueError("invalid initial memory")
+    degree_limit = T - 1 if max_total_degree is None else int(max_total_degree)
+    if degree_limit < 0:
+        raise ValueError("max_total_degree must be non-negative")
+    degree_limit = min(degree_limit, T - 1)
+
+    n_parameters = directions.shape[0]
+    zero_exponent = (0,) * n_parameters
+    initial = np.zeros((source.n_states, k), dtype=float)
+    initial[:, initial_memory] = source_stationary_distribution(source)
+    distribution: dict[tuple[int, ...], np.ndarray] = {zero_exponent: initial}
+    coefficients: dict[tuple[int, ...], float] = {}
+    log_readout = np.log(decoder)
+
+    for time in range(T):
+        for exponent, occupancy in distribution.items():
+            value = -float(
+                np.einsum(
+                    "sm,sx,mx->", occupancy, source.emissions, log_readout
+                )
+            ) / T
+            coefficients[exponent] = coefficients.get(exponent, 0.0) + value
+        if time == T - 1:
+            break
+
+        next_distribution: dict[tuple[int, ...], np.ndarray] = {}
+        for exponent, occupancy in distribution.items():
+            base_out = _propagate_product_occupancy(source, occupancy, base)
+            if np.any(base_out):
+                if exponent in next_distribution:
+                    next_distribution[exponent] += base_out
+                else:
+                    next_distribution[exponent] = base_out
+
+            if sum(exponent) >= degree_limit:
+                continue
+            for parameter, direction in enumerate(directions):
+                direction_out = _propagate_product_occupancy(
+                    source, occupancy, direction
+                )
+                if not np.any(direction_out):
+                    continue
+                new_exponent = list(exponent)
+                new_exponent[parameter] += 1
+                key = tuple(new_exponent)
+                if sum(key) > degree_limit:
+                    continue
+                if key in next_distribution:
+                    next_distribution[key] += direction_out
+                else:
+                    next_distribution[key] = direction_out
+        distribution = next_distribution
+
+    return coefficients
+
+
+def _propagate_product_occupancy(
+    source: UnifilarSource,
+    occupancy: np.ndarray,
+    controller_tensor: np.ndarray,
+) -> np.ndarray:
+    output = np.zeros_like(occupancy)
+    for source_state in range(source.n_states):
+        for memory_state in range(occupancy.shape[1]):
+            weight = occupancy[source_state, memory_state]
+            if weight == 0.0:
+                continue
+            for symbol in range(source.alphabet_size):
+                emission = source.emissions[source_state, symbol]
+                if emission == 0.0:
+                    continue
+                successor = source.transitions[source_state, symbol]
+                output[successor] += (
+                    weight * emission * controller_tensor[memory_state, symbol]
+                )
+    return output
+
+
+def leading_multivariate_total_degree(
+    loss_coefficients: dict[tuple[int, ...], float],
+    *,
+    atol: float = 1e-12,
+) -> int | None:
+    """Smallest positive total degree with a nonzero multivariate coefficient."""
+    if atol < 0.0:
+        raise ValueError("atol must be non-negative")
+    degrees = [
+        sum(exponent)
+        for exponent, coefficient in loss_coefficients.items()
+        if sum(exponent) > 0 and abs(float(coefficient)) > atol
+    ]
+    return min(degrees) if degrees else None

@@ -93,6 +93,8 @@ def test_prewired_dormant_scaffold_reduces_distance_and_order_to_one():
 
 
 def test_exact_cancellation_can_raise_order_above_structural_distance():
+    # States are 00, 01, 10, 11. The source is second-order and symmetric,
+    # with P(next=0 | most recent emitted token=0)=5/6.
     emissions = np.array(
         [[0.9, 0.1], [0.5, 0.5], [0.5, 0.5], [0.1, 0.9]], dtype=float
     )
@@ -126,3 +128,87 @@ def test_exact_cancellation_can_raise_order_above_structural_distance():
     assert abs(coefficients[1]) < 1e-12
     assert coefficients[2] < -0.03
     assert leading_perturbative_order(coefficients, atol=1e-11) == 2
+
+
+def _independent_chain_directions(delay: int) -> tuple[np.ndarray, np.ndarray]:
+    k = delay + 1
+    base = np.zeros((k, 2, k), dtype=float)
+    base[:, :, 0] = 1.0
+    directions = []
+
+    first = np.zeros_like(base)
+    first[0, 0, 0] = -1.0
+    first[0, 0, 1] = 1.0
+    directions.append(first)
+    for state in range(1, delay):
+        direction = np.zeros_like(base)
+        for symbol in range(2):
+            direction[state, symbol, 0] = -1.0
+            direction[state, symbol, state + 1] = 1.0
+        directions.append(direction)
+    return base, np.asarray(directions)
+
+
+def test_independent_missing_links_first_appear_as_full_mixed_derivative():
+    from memory_frontier.order_barrier import (
+        binary_delay_chain_leading_gain_coefficient,
+    )
+    from memory_frontier.perturbative import (
+        leading_multivariate_total_degree,
+        multivariate_controller_loss_coefficients,
+    )
+
+    for delay in (2, 3, 4, 5):
+        horizon = delay + 8
+        source = delayed_repeat_source(2, delay, 0.1)
+        base, directions = _independent_chain_directions(delay)
+        readout = binary_chain_readout(delay, 0.4)
+        coefficients = multivariate_controller_loss_coefficients(
+            source, base, directions, readout, horizon
+        )
+
+        assert leading_multivariate_total_degree(coefficients, atol=1e-11) == delay
+        leading_key = (1,) * delay
+        expected_gain = binary_delay_chain_leading_gain_coefficient(
+            delay, 0.1, horizon, 0.4
+        )
+        assert np.isclose(coefficients[leading_key], -expected_gain, atol=1e-12)
+        for exponent, coefficient in coefficients.items():
+            if 0 < sum(exponent) < delay:
+                assert abs(coefficient) < 1e-12
+
+
+def test_tying_parameters_can_hide_nonzero_independent_gradients():
+    from memory_frontier.perturbative import (
+        leading_multivariate_total_degree,
+        multivariate_controller_loss_coefficients,
+    )
+
+    source = delayed_repeat_source(2, 1, 0.2)
+    k = 3
+    base = np.zeros((k, 2, k), dtype=float)
+    base[:, :, 0] = 1.0
+    direction_zero = np.zeros_like(base)
+    direction_zero[0, 0, 0] = -1.0
+    direction_zero[0, 0, 1] = 1.0
+    direction_one = np.zeros_like(base)
+    direction_one[0, 1, 0] = -1.0
+    direction_one[0, 1, 2] = 1.0
+    directions = np.stack([direction_zero, direction_one])
+
+    readout = np.full((k, 2), 0.5, dtype=float)
+    readout[1] = np.array([0.8, 0.2])
+    readout[2] = np.array([0.6289589607495853, 1.0 - 0.6289589607495853])
+
+    multi = multivariate_controller_loss_coefficients(
+        source, base, directions, readout, 8
+    )
+    assert leading_multivariate_total_degree(multi, atol=1e-11) == 1
+    assert multi[(1, 0)] < -0.08
+    assert multi[(0, 1)] > 0.08
+    assert np.isclose(multi[(1, 0)] + multi[(0, 1)], 0.0, atol=1e-12)
+
+    tied = affine_controller_loss_coefficients(
+        source, base, direction_zero + direction_one, readout, 8
+    )
+    assert leading_perturbative_order(tied, atol=1e-11) is None
