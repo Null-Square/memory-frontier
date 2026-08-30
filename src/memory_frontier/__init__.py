@@ -25,6 +25,12 @@ from .cell_stability import (
     canonical_cell_readout,
     hard_cell_stability,
 )
+from .construction_order import (
+    ConstructionOrderOperator,
+    construction_order_operator,
+    construction_order_sandwich,
+    minimum_readout_class_construction_cost,
+)
 from .core import (
     ControllerOptimum,
     PartitionOptimum,
@@ -126,6 +132,7 @@ __all__ = [
     "AdiabaticStep",
     "BoundaryCandidate",
     "BoundaryRacePrediction",
+    "ConstructionOrderOperator",
     "ControllerClass",
     "ControllerOptimum",
     "ControllerSpectrum",
@@ -161,6 +168,8 @@ __all__ = [
     "collapsed_one_contrast_pressure_scale",
     "collapsed_pressure_accessibility_margin",
     "collapsed_transition_pressure_scale",
+    "construction_order_operator",
+    "construction_order_sandwich",
     "controller_average_occupancy",
     "controller_finite_horizon_log_loss",
     "controller_log_loss",
@@ -184,6 +193,7 @@ __all__ = [
     "is_exactly_synchronizing",
     "is_strongly_connected",
     "linearized_transition_gradient_from_readout_direction",
+    "minimum_readout_class_construction_cost",
     "observable_markov_source",
     "one_edit_tables",
     "predict_boundary_race",
