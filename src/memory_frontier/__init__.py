@@ -3,6 +3,12 @@ from .accessibility import (
     gradient_accessibility_operator,
     linearized_transition_gradient_from_readout_direction,
 )
+from .adiabatic import (
+    AdiabaticOrbit,
+    AdiabaticStep,
+    adiabatic_orbit,
+    adiabatic_successor,
+)
 from .cards import finite_horizon_card
 from .cell_dynamics import (
     HardCellEvaluation,
@@ -105,6 +111,8 @@ from .spectral import (
 from .witnesses import four_state_aliasing_witness, horizon_switch_witness
 
 __all__ = [
+    "AdiabaticOrbit",
+    "AdiabaticStep",
     "ControllerClass",
     "ControllerOptimum",
     "ControllerSpectrum",
@@ -122,6 +130,8 @@ __all__ = [
     "HardValueGradient",
     "PartitionOptimum",
     "UnifilarSource",
+    "adiabatic_orbit",
+    "adiabatic_successor",
     "alias_entropy",
     "bayes_log_loss",
     "best_deterministic_controller",
