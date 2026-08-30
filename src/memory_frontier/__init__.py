@@ -9,6 +9,11 @@ from .cell_dynamics import (
     HardCellOracle,
     build_hard_cell_oracle,
 )
+from .cell_stability import (
+    HardCellStability,
+    canonical_cell_readout,
+    hard_cell_stability,
+)
 from .core import (
     ControllerOptimum,
     PartitionOptimum,
@@ -110,6 +115,7 @@ __all__ = [
     "GradientAccessibilityOperator",
     "HardCellEvaluation",
     "HardCellOracle",
+    "HardCellStability",
     "HardEdge",
     "HardLandscape",
     "HardNode",
@@ -125,6 +131,7 @@ __all__ = [
     "binary_delay_matched_first_order_pressure_coefficient",
     "binary_dormant_chain_readout_logits",
     "build_hard_cell_oracle",
+    "canonical_cell_readout",
     "collapsed_one_contrast_pressure_scale",
     "collapsed_pressure_accessibility_margin",
     "collapsed_transition_pressure_scale",
@@ -144,6 +151,7 @@ __all__ = [
     "finite_horizon_hard_landscape",
     "four_state_aliasing_witness",
     "gradient_accessibility_operator",
+    "hard_cell_stability",
     "hard_value_gradient",
     "horizon_switch_witness",
     "is_doubly_stochastic",
