@@ -22,6 +22,10 @@ from .counterfactual import (
     stationary_token_lag_conditionals,
     transition_pair_jacobian_scale,
 )
+from .counterfactual_accessibility import (
+    CounterfactualAccessibilityOperator,
+    counterfactual_accessibility_operator,
+)
 from .delayed import (
     delayed_repeat_entropy_rate,
     delayed_repeat_source,
@@ -89,6 +93,7 @@ __all__ = [
     "ControllerClass",
     "ControllerOptimum",
     "ControllerSpectrum",
+    "CounterfactualAccessibilityOperator",
     "ExactSTEGradient",
     "GradientAccessibilityOperator",
     "HardEdge",
@@ -111,6 +116,7 @@ __all__ = [
     "controller_average_occupancy",
     "controller_finite_horizon_log_loss",
     "controller_log_loss",
+    "counterfactual_accessibility_operator",
     "dormant_chain_controller",
     "delayed_repeat_entropy_rate",
     "delayed_repeat_source",
