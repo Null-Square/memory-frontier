@@ -7,9 +7,11 @@ docs, Git metadata, repository README files, release-tooling tests, and generate
 editable-install metadata are excluded.
 
 The output is deterministic: files are sorted, ZIP timestamps/permissions are
-fixed, and a SHA-256 manifest is embedded.  Before writing the archive, every
-text file is scanned for obvious identity leaks (emails, public GitHub links,
-local absolute home paths) plus any caller-provided deny markers.
+fixed, and a SHA-256 manifest is embedded.  To prevent a public development
+repository from being discoverable through its package name alone, the exported
+Python namespace and distribution name are rewritten to neutral anonymous names.
+All exported text is then scanned for obvious identity leaks (emails, public
+GitHub links, local absolute home paths) plus any caller-provided deny markers.
 
 Usage
 -----
@@ -34,6 +36,11 @@ import zipfile
 
 
 ARCHIVE_ROOT = "submission_code"
+SOURCE_DISTRIBUTION_NAME = "memory-frontier"
+ANONYMOUS_DISTRIBUTION_NAME = "anonymous-memory"
+SOURCE_MODULE_NAME = "memory_frontier"
+ANONYMOUS_MODULE_NAME = "anonymous_memory"
+
 TEXT_SUFFIXES = {
     ".py",
     ".toml",
@@ -114,8 +121,8 @@ python experiments/paper_figures.py --outdir generated_figures
 
 The manuscript gives the mathematical assumptions and distinguishes exact
 regressions from outside-CI breadth/optimizer evidence.  This archive intentionally
-contains no repository history, author metadata, acknowledgments, or public
-project links.
+contains no repository history, author metadata, acknowledgments, public project
+links, or development-project package identifiers.
 """
 
 
@@ -179,29 +186,76 @@ def identity_leaks(text: str, *, deny_markers: tuple[str, ...] = ()) -> tuple[st
     return tuple(findings)
 
 
-def audit_export(root: Path, files: tuple[Path, ...], *, deny_markers: tuple[str, ...]) -> None:
+def _anonymous_relative_path(relative: Path) -> Path:
+    parts = tuple(
+        ANONYMOUS_MODULE_NAME if part == SOURCE_MODULE_NAME else part
+        for part in relative.parts
+    )
+    return Path(*parts)
+
+
+def _anonymous_payload(path: Path) -> bytes:
+    payload = path.read_bytes()
+    if not _is_text(path):
+        return payload
+    text = payload.decode("utf-8")
+    text = text.replace(SOURCE_MODULE_NAME, ANONYMOUS_MODULE_NAME)
+    text = text.replace(SOURCE_DISTRIBUTION_NAME, ANONYMOUS_DISTRIBUTION_NAME)
+    return text.encode("utf-8")
+
+
+def _export_entries(root: Path, files: tuple[Path, ...]) -> list[tuple[str, bytes]]:
+    entries: list[tuple[str, bytes]] = [
+        (f"{ARCHIVE_ROOT}/README.md", ANONYMOUS_README.encode("utf-8"))
+    ]
+    for relative in files:
+        anonymous_relative = _anonymous_relative_path(relative)
+        entries.append(
+            (
+                f"{ARCHIVE_ROOT}/{anonymous_relative.as_posix()}",
+                _anonymous_payload(root / relative),
+            )
+        )
+    entries.sort(key=lambda item: item[0])
+    return entries
+
+
+def audit_entries(
+    entries: list[tuple[str, bytes]],
+    *,
+    deny_markers: tuple[str, ...],
+) -> None:
     """Fail if any exported textual payload contains an identity marker."""
     failures: list[str] = []
-    for relative in files:
-        path = root / relative
-        if not _is_text(path):
+    for archive_name, payload in entries:
+        suffix = Path(archive_name).suffix.lower()
+        if suffix not in TEXT_SUFFIXES:
             continue
         try:
-            text = path.read_text(encoding="utf-8")
+            text = payload.decode("utf-8")
         except UnicodeDecodeError as exc:
-            failures.append(f"{relative}: not valid UTF-8 ({exc})")
+            failures.append(f"{archive_name}: not valid UTF-8 ({exc})")
             continue
         findings = identity_leaks(text, deny_markers=deny_markers)
         if findings:
-            failures.append(f"{relative}: {', '.join(findings)}")
-
-    readme_findings = identity_leaks(ANONYMOUS_README, deny_markers=deny_markers)
-    if readme_findings:
-        failures.append(f"generated README: {', '.join(readme_findings)}")
+            failures.append(f"{archive_name}: {', '.join(findings)}")
 
     if failures:
         joined = "\n  - ".join(failures)
         raise RuntimeError(f"anonymous bundle identity audit failed:\n  - {joined}")
+
+
+def audit_export(
+    root: Path,
+    files: tuple[Path, ...],
+    *,
+    deny_markers: tuple[str, ...],
+) -> None:
+    """Audit the transformed archive payload without writing a ZIP."""
+    audit_entries(
+        _export_entries(root.resolve(), files),
+        deny_markers=deny_markers,
+    )
 
 
 def _zip_info(archive_name: str) -> zipfile.ZipInfo:
@@ -232,16 +286,9 @@ def build_bundle(
     output = output.resolve()
     files = collect_export_files(root)
     markers = _custom_markers(deny_markers)
-    audit_export(root, files, deny_markers=markers)
+    entries = _export_entries(root, files)
+    audit_entries(entries, deny_markers=markers)
 
-    entries: list[tuple[str, bytes]] = [
-        (f"{ARCHIVE_ROOT}/README.md", ANONYMOUS_README.encode("utf-8"))
-    ]
-    for relative in files:
-        entries.append(
-            (f"{ARCHIVE_ROOT}/{relative.as_posix()}", (root / relative).read_bytes())
-        )
-    entries.sort(key=lambda item: item[0])
     manifest_payload = _manifest(entries)
     entries.append((f"{ARCHIVE_ROOT}/MANIFEST.sha256", manifest_payload))
 
@@ -264,7 +311,7 @@ def main() -> None:
         "--deny-marker",
         action="append",
         default=[],
-        help="case-insensitive identity/project marker that must not occur in exported text",
+        help="case-insensitive identity/project marker that must not occur in transformed exported text",
     )
     args = parser.parse_args()
 
