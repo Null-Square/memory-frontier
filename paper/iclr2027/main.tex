@@ -13,7 +13,7 @@
   \typeout{WARNING: official iclr2027_conference.sty not found; syntax-check mode only.}
 }
 
-\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{amsmath,amssymb,amsfonts,amsthm}
 \usepackage{mathtools}
 \usepackage{booktabs}
 \usepackage{graphicx}
@@ -29,11 +29,16 @@
 % names, affiliations, or acknowledgments during double-blind review.
 \author{Anonymous Authors}
 
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
 \newcommand{\dsupport}{d_{\mathrm{support}}}
 \newcommand{\doperator}{d_{\mathrm{operator}}}
 \newcommand{\dloss}{d_{\mathrm{loss}}}
 \newcommand{\dvis}{d_{\mathrm{vis}}}
 \newcommand{\ddown}{d_{\downarrow}}
+\newcommand{\maybegraphics}[2][]{%
+  \IfFileExists{#2}{\includegraphics[#1]{#2}}{\fbox{\parbox[c][1.15in][c]{0.94\linewidth}{\centering Generated figure placeholder:\\ \texttt{#2}}}}%
+}
 
 \begin{document}
 \maketitle
@@ -59,9 +64,8 @@ Every scalar coefficient factors as $c_\alpha=-\langle G_\alpha,\log q\rangle$, 
 
 \clearpage
 \ificlrstyle
-  % Replace with the bibliography command/style required by the official ICLR
-  % 2027 example source if it differs. Do not infer final formatting from the
-  % fallback build.
+  % Confirm this bibliography style against the official ICLR 2027 example source
+  % after the conference archive is installed.
   \bibliographystyle{iclr2027_conference}
 \else
   \bibliographystyle{plainnat}
