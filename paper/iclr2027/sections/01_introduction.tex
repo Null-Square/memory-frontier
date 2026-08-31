@@ -1,0 +1,16 @@
+\section{Introduction}
+
+Memory is usually treated as a representational question: does an architecture contain enough states or dimensions to encode the history needed for prediction? A trainable memory system faces a second question: \emph{at what local derivative order does the objective reveal how to build a useful memory computation from the current parameter point?} We call this local property \emph{gradient accessibility}.
+
+Capacity, current behavior, and accessibility need not coincide. Consider two recurrent controllers with the same source, memory size, decoder, and exactly the same source-conditioned trajectories from the reset state. They therefore implement the same current predictor. Yet they can differ on transition rows never exercised by that current process. If learning later opens an entrance into such a dormant region, its pre-existing wiring determines how many additional missing transitions must be constructed before a distinct predictive state is reached. The dormant wiring is irrelevant to what the system computes now but can be decisive for what local optimization can build next.
+
+Our central statement is therefore
+\[
+\boxed{\text{forward equivalence does not imply accessibility equivalence}.}
+\]
+The claim is narrower than several known phenomena. Finite-state-controller gradients can vanish or become small \citep{aberdeen2002scaling}; finite-horizon controller objectives can have polynomial structure \citep{boularias2009predictive}; and same-function neural-network embeddings can have different local landscape geometry \citep{fukumizu2019semiflat}. Our object is the \emph{first local degree of a specified latent finite-memory construction around a fixed base controller}, factored into source-valid paths, a quotient occupancy operator, and the decoder. We then intervene only on behaviorally dormant topology while holding the current forward process fixed.
+
+\paragraph{Contributions.}
+We make four main points. First, we define three exact construction orders and prove the hierarchy $\dsupport\leq\doperator\leq\dloss$, with strict gaps corresponding to path/operator cancellation and decoder cancellation. Second, we prove a source-aware dormant forward-equivalence theorem and show that dormant rewiring can realize arbitrary construction orders while preserving the entire current finite-horizon source-memory process. Third, we separate structural construction order from optimizer geometry: regular finite coordinate changes preserve scalar order, whereas the simplex boundary is singular, yielding different order-to-time laws in affine probability and softmax coordinates. Fourth, a smooth linear state-space delay model trained with ordinary autograd reproduces loss orders one through five while all compared base initializations implement the same current zero predictor.
+
+The isolated homogeneous-flow, balancedness, and softmax-slowness mathematics used later is not claimed as new. The contribution is the exact map from latent finite-memory construction topology to the local degree at which that known optimization geometry becomes relevant.
