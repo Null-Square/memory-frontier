@@ -36,8 +36,10 @@ def test_export_manifest_is_whitelist_based_and_excludes_development_material():
     assert not any(name.startswith("paper/") for name in names)
     assert not any(name.startswith("docs/") for name in names)
     assert not any(name.startswith(".git") for name in names)
+    assert not any(".egg-info/" in name for name in names)
     assert "README.md" not in names
     assert "experiments/build_anonymous_bundle.py" not in names
+    assert "tests/test_anonymous_bundle.py" not in names
 
 
 def test_identity_scanner_detects_generic_and_custom_markers():
@@ -81,6 +83,8 @@ def test_bundle_is_deterministic_and_contains_verified_manifest(tmp_path: Path):
         assert "submission_code/MANIFEST.sha256" in names
         assert not any("paper/" in name for name in names)
         assert not any("docs/" in name for name in names)
+        assert not any(".egg-info/" in name for name in names)
+        assert "submission_code/tests/test_anonymous_bundle.py" not in names
 
         manifest = archive.read("submission_code/MANIFEST.sha256").decode("utf-8")
         for line in manifest.strip().splitlines():
