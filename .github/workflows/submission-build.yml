@@ -1,0 +1,249 @@
+name: submission-build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "paper/iclr2027/**"
+      - "paper/references.bib"
+      - "experiments/paper_figures.py"
+      - "experiments/build_anonymous_bundle.py"
+      - "src/**"
+      - "tests/**"
+      - "data/**"
+      - "pyproject.toml"
+      - ".github/workflows/submission-build.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "paper/iclr2027/**"
+      - "paper/references.bib"
+      - "experiments/paper_figures.py"
+      - "experiments/build_anonymous_bundle.py"
+      - "src/**"
+      - "tests/**"
+      - "data/**"
+      - "pyproject.toml"
+      - ".github/workflows/submission-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: submission-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  submission:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install project and release dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e '.[dev,optimization]'
+
+      - name: Run exact regression suite
+        run: pytest -q
+
+      - name: Build and retest anonymous supplementary code
+        env:
+          ANONYMITY_DENYLIST: ${{ github.repository_owner }}:${{ github.event.repository.name }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist /tmp/anonymous-code
+          python experiments/build_anonymous_bundle.py \
+            --output dist/anonymous_submission_code.zip
+          unzip -q dist/anonymous_submission_code.zip -d /tmp/anonymous-code
+          (
+            cd /tmp/anonymous-code/submission_code
+            python -m pip install -e .
+            pytest -q
+          )
+          sha256sum dist/anonymous_submission_code.zip > dist/anonymous_code_sha256.txt
+
+      - name: Generate paper figures
+        run: |
+          rm -rf paper/iclr2027/figures
+          python experiments/paper_figures.py --outdir paper/iclr2027/figures
+          for figure in \
+            figure1_forward_equivalence.pdf \
+            figure2_order_hierarchy.pdf \
+            figure3_forward_class_census.pdf \
+            figure4_order_to_time_geometry.pdf; do
+            test -s "paper/iclr2027/figures/${figure}"
+          done
+
+      - name: Install LaTeX build dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            texlive-latex-base \
+            texlive-latex-recommended \
+            texlive-latex-extra \
+            texlive-fonts-recommended \
+            poppler-utils \
+            unzip
+
+      - name: Fetch official ICLR 2027 style archive
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/iclr2027-style dist
+          curl --fail --location --retry 3 --silent --show-error \
+            https://media.iclr.cc/Conferences/ICLR2027/iclr-2027-style-files.zip \
+            --output /tmp/iclr-2027-style-files.zip
+          unzip -q /tmp/iclr-2027-style-files.zip -d /tmp/iclr2027-style
+          style_file="$(find /tmp/iclr2027-style -type f -name 'iclr2027_conference.sty' -print -quit)"
+          bst_file="$(find /tmp/iclr2027-style -type f -name 'iclr2027_conference.bst' -print -quit)"
+          test -n "${style_file}"
+          test -n "${bst_file}"
+          cp "${style_file}" paper/iclr2027/iclr2027_conference.sty
+          cp "${bst_file}" paper/iclr2027/iclr2027_conference.bst
+          sha256sum /tmp/iclr-2027-style-files.zip > dist/iclr_style_sha256.txt
+
+      - name: Audit anonymous manuscript source
+        env:
+          REPOSITORY_OWNER_MARKER: ${{ github.repository_owner }}
+          REPOSITORY_NAME_MARKER: ${{ github.event.repository.name }}
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import os
+          import re
+
+          files = [
+              Path("paper/iclr2027/main.tex"),
+              Path("paper/iclr2027/appendix.tex"),
+              Path("paper/iclr2027/reproducibility_statement.tex"),
+              Path("paper/iclr2027/ai_use_statement.tex"),
+              Path("paper/references.bib"),
+          ]
+          files.extend(sorted(Path("paper/iclr2027/sections").glob("*.tex")))
+
+          generic = (
+              ("email address", re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.I)),
+              ("public GitHub URL", re.compile(r"https?://(?:www\.)?github\.com/", re.I)),
+              ("local home path", re.compile(r"/(?:home|Users)/[^/\s]+/")),
+          )
+          markers = tuple(
+              marker.casefold()
+              for marker in (
+                  os.environ.get("REPOSITORY_OWNER_MARKER", ""),
+                  os.environ.get("REPOSITORY_NAME_MARKER", ""),
+              )
+              if marker
+          )
+
+          failures = []
+          for path in files:
+              text = path.read_text(encoding="utf-8")
+              for label, pattern in generic:
+                  if pattern.search(text):
+                      failures.append(f"{path}: {label}")
+              lowered = text.casefold()
+              if any(marker in lowered for marker in markers):
+                  failures.append(f"{path}: development repository identity marker")
+
+          main = Path("paper/iclr2027/main.tex").read_text(encoding="utf-8")
+          if r"\author{Anonymous Authors}" not in main:
+              failures.append("paper/iclr2027/main.tex: anonymous author block missing")
+
+          if failures:
+              raise SystemExit("anonymous manuscript audit failed:\n  - " + "\n  - ".join(failures))
+          PY
+
+      - name: Compile with official ICLR style
+        run: |
+          set -euo pipefail
+          cd paper/iclr2027
+          pdflatex -interaction=nonstopmode -halt-on-error main.tex
+          bibtex main
+          pdflatex -interaction=nonstopmode -halt-on-error main.tex
+          pdflatex -interaction=nonstopmode -halt-on-error main.tex
+
+      - name: Enforce pagination, references, layout, and PDF anonymity
+        env:
+          REPOSITORY_OWNER_MARKER: ${{ github.repository_owner }}
+          REPOSITORY_NAME_MARKER: ${{ github.event.repository.name }}
+        run: |
+          set -euo pipefail
+          cd paper/iclr2027
+
+          main_pages="$(grep -o 'ICLR-MAIN-TEXT-LAST-PAGE:[0-9][0-9]*' main.log | tail -1 | cut -d: -f2)"
+          test -n "${main_pages}"
+          echo "ICLR counted main-text pages: ${main_pages}"
+          if (( main_pages > 9 )); then
+            echo "Main text exceeds ICLR 2027 nine-page submission limit" >&2
+            exit 1
+          fi
+
+          if grep -Eq 'Citation .* undefined|Reference .* undefined|There were undefined references|There were undefined citations' main.log; then
+            echo "Undefined citation/reference detected" >&2
+            grep -E 'Citation .* undefined|Reference .* undefined|There were undefined references|There were undefined citations' main.log >&2 || true
+            exit 1
+          fi
+
+          if grep -q 'Overfull \\hbox' main.log; then
+            echo "Overfull hbox detected in final submission build" >&2
+            grep 'Overfull \\hbox' main.log >&2
+            exit 1
+          fi
+
+          mkdir -p ../../dist
+          pdfinfo main.pdf > ../../dist/pdfinfo.txt
+          pdftotext main.pdf ../../dist/submission_text.txt
+
+          author="$(sed -n 's/^Author:[[:space:]]*//p' ../../dist/pdfinfo.txt | head -1)"
+          if [[ -n "${author}" && "${author}" != "Anonymous Authors" ]]; then
+            echo "Unexpected PDF author metadata" >&2
+            exit 1
+          fi
+
+          python - <<'PY'
+          from pathlib import Path
+          import os
+
+          text = Path("../../dist/submission_text.txt").read_text(encoding="utf-8", errors="ignore").casefold()
+          markers = [
+              os.environ.get("REPOSITORY_OWNER_MARKER", "").casefold(),
+              os.environ.get("REPOSITORY_NAME_MARKER", "").casefold(),
+          ]
+          if any(marker and marker in text for marker in markers):
+              raise SystemExit("development repository identity marker found in rendered PDF")
+          PY
+
+          total_pages="$(pdfinfo main.pdf | awk '/^Pages:/ {print $2}')"
+          cd ../..
+          {
+            echo "release_sha=${GITHUB_SHA}"
+            echo "main_text_pages=${main_pages}"
+            echo "total_pdf_pages=${total_pages}"
+            echo "pdf_sha256=$(sha256sum paper/iclr2027/main.pdf | awk '{print $1}')"
+            echo "anonymous_code_sha256=$(sha256sum dist/anonymous_submission_code.zip | awk '{print $1}')"
+            echo "official_style_zip_sha256=$(awk '{print $1}' dist/iclr_style_sha256.txt)"
+            echo "undefined_references=0"
+            echo "overfull_hboxes=0"
+          } > dist/submission_build_report.txt
+          cat dist/submission_build_report.txt
+
+      - name: Upload anonymous submission artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: iclr2027-submission-${{ github.sha }}
+          retention-days: 14
+          path: |
+            paper/iclr2027/main.pdf
+            paper/iclr2027/figures/*.pdf
+            dist/anonymous_submission_code.zip
+            dist/submission_build_report.txt
+            dist/pdfinfo.txt
+            dist/iclr_style_sha256.txt
+            dist/anonymous_code_sha256.txt
