@@ -1,7 +1,7 @@
 \documentclass[twoside,11pt]{article}
 
 \usepackage{jmlr2e}
-\usepackage{amsmath,amsfonts,amsthm,mathtools,booktabs}
+\usepackage{amsmath,amsfonts,mathtools,booktabs}
 \usepackage{microtype}
 \usepackage{placeins}
 \hypersetup{hidelinks}
@@ -17,6 +17,7 @@
 
 \editor{Under Review}
 
+% jmlr2e already defines the proof environment; loading amsthm would redefine it.
 \newtheorem{theorem}{Theorem}
 \newtheorem{proposition}{Proposition}
 \newcommand{\dsupport}{d_{\mathrm{support}}}
