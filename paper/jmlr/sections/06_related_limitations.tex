@@ -1,0 +1,17 @@
+\section{Related work, scope, and limitations}
+\label{sec:related}
+
+\paragraph{Finite-state controllers.}
+Policy-gradient work for controllers with internal state already documents weak or vanishing learning signals \citep{aberdeen2002scaling}, and predictive-representation/FSC objectives have explicit polynomial structure \citep{boularias2009predictive}. We do not claim either phenomenon. Our contribution is the lowest local degree of a \emph{particular latent predictive construction} around a fixed controller, the support/operator/decoder factorization of that degree, and a dormant-topology intervention that changes the degree while preserving the complete current forward process.
+
+\paragraph{Same function, different geometry.}
+Overparameterized neural networks can embed the same function into different local landscapes \citep{fukumizu2019semiflat}. Our result is more specialized: the architecture size, source, decoder, currently reachable controller dynamics, and forward predictor are fixed; only source-inaccessible base wiring changes. The construction order then records the counterfactual number of missing factors revealed after a new entrance becomes reachable.
+
+\paragraph{Homogeneous and symmetry-based learning dynamics.}
+Deep-linear and homogeneous models have exact staged learning and saddle dynamics \citep{saxe2014exact,rawal2026saddle}; symmetry and balancedness generate conservation laws in gradient flow \citep{kunin2020neural,tanaka2021noether}. We use these results as dynamical context rather than novelty. Likewise, recent work on dormant feature activation \citep{kunin2025alternating} and singular/dead directions \citep{shirodkar2026dead} is conceptually adjacent. The finite-memory contribution is the exact topology-to-degree map under source-valid forward constraints.
+
+\paragraph{Optimization geometry.}
+Natural-gradient theory emphasizes parameterization/metric dependence \citep{amari1998natural}, and exponential slowness of softmax policy gradient is known in tabular constructions \citep{li2023softmax}. We therefore do not claim generic softmax slowness. Our boundary calculation only connects a known rare-edge metric degeneracy to the finite-memory construction degree in an exactly solvable isolated route.
+
+\paragraph{Limitations and failure boundary.}
+All central construction-order theorems are finite-horizon and local to a specified affine transition family. The hierarchy is a visibility statement; useful learnability additionally requires an admissible descent sign. The exact completion-time laws assume an isolated leading construction and a stated optimizer geometry. Competing routes can invalidate winner predictions based only on leading coefficients: when two leading routes or singular modes are nearly tied, the first neglected higher-order correction can reverse the race. The repository contains exact scalar and spectral counterexamples, so we use leading-order dynamics only away from such near-degeneracy. We do not prove an infinite-horizon analogue, an adaptive-optimizer theorem, or a population statement about large neural sequence models.
