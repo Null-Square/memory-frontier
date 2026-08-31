@@ -131,18 +131,31 @@ jobs:
           sha256sum paper/jmlr/main.pdf > dist/jmlr_pdf_sha256.txt
           grep "JMLR-MAIN-TEXT-LAST-PAGE" paper/jmlr/main.log | tail -1 > dist/jmlr_main_page.txt
 
-      - name: Build source package and report
+      - name: Build and recompile source package
         run: |
           set -euo pipefail
-          mkdir -p dist/jmlr_source
+          rm -rf dist/jmlr_source /tmp/jmlr-source-check
+          mkdir -p dist/jmlr_source/paper/jmlr dist/jmlr_source/paper
           cp paper/jmlr/main.tex paper/jmlr/author_metadata.tex \
              paper/jmlr/reproducibility_statement.tex paper/jmlr/disclosures.tex \
-             paper/jmlr/appendix.tex paper/jmlr/jmlr2e.sty dist/jmlr_source/
-          cp paper/references.bib dist/jmlr_source/references.bib
-          cp -r paper/jmlr/sections dist/jmlr_source/sections
-          cp -r paper/jmlr/figures dist/jmlr_source/figures
+             paper/jmlr/appendix.tex paper/jmlr/jmlr2e.sty dist/jmlr_source/paper/jmlr/
+          cp paper/references.bib dist/jmlr_source/paper/references.bib
+          cp -r paper/jmlr/sections dist/jmlr_source/paper/jmlr/sections
+          cp -r paper/jmlr/figures dist/jmlr_source/paper/jmlr/figures
           (cd dist && zip -qr jmlr_source.zip jmlr_source)
+          unzip -q dist/jmlr_source.zip -d /tmp/jmlr-source-check
+          (
+            cd /tmp/jmlr-source-check/jmlr_source/paper/jmlr
+            pdflatex -interaction=nonstopmode -halt-on-error main.tex >/dev/null
+            bibtex main >/dev/null
+            pdflatex -interaction=nonstopmode -halt-on-error main.tex >/dev/null
+            pdflatex -interaction=nonstopmode -halt-on-error main.tex >/dev/null
+            test -s main.pdf
+          )
           sha256sum dist/jmlr_source.zip > dist/jmlr_source_sha256.txt
+
+      - name: Build report
+        run: |
           {
             echo "repository_commit=${GITHUB_SHA}"
             cat dist/jmlr_pdf_sha256.txt
