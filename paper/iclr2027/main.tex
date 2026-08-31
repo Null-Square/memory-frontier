@@ -22,12 +22,17 @@
 \usepackage{hyperref}
 \usepackage{enumitem}
 \usepackage{natbib}
+\usepackage{placeins}
 
 \title{Same Predictor, Different Learnability:\\Construction Order in Finite-State Memory}
 
 % Keep the submission anonymous. Do not add development-repository identity,
 % names, affiliations, or acknowledgments during double-blind review.
 \author{Anonymous Authors}
+\hypersetup{
+  pdfauthor={Anonymous Authors},
+  pdftitle={Same Predictor, Different Learnability: Construction Order in Finite-State Memory}
+}
 
 \newtheorem{theorem}{Theorem}
 \newtheorem{proposition}{Proposition}
@@ -58,6 +63,11 @@ Every scalar coefficient factors as $c_\alpha=-\langle G_\alpha,\log q\rangle$, 
 \input{sections/05_smooth_validation}
 \input{sections/06_related_limitations}
 \input{sections/07_conclusion}
+
+% No main-text float may drift into the uncounted reproducibility/AI sections.
+% The submission workflow parses this exact log marker under the official style.
+\FloatBarrier
+\typeout{ICLR-MAIN-TEXT-LAST-PAGE:\thepage}
 
 \input{reproducibility_statement}
 \input{ai_use_statement}
