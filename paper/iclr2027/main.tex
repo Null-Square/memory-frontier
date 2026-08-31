@@ -1,0 +1,74 @@
+\documentclass{article}
+
+% Final submission builds must place the official ICLR 2027 style files in this
+% directory from the conference-provided archive. The fallback below exists only
+% for local syntax checking; its page count is not an ICLR page count.
+\newif\ificlrstyle
+\IfFileExists{iclr2027_conference.sty}{%
+  \iclrstyletrue
+  \usepackage{iclr2027_conference,times}
+}{%
+  \iclrstylefalse
+  \usepackage{times}
+  \typeout{WARNING: official iclr2027_conference.sty not found; syntax-check mode only.}
+}
+
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{mathtools}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{microtype}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{natbib}
+
+\title{Same Predictor, Different Learnability:\\Construction Order in Finite-State Memory}
+
+% Keep the submission anonymous. Do not add development-repository identity,
+% names, affiliations, or acknowledgments during double-blind review.
+\author{Anonymous Authors}
+
+\newcommand{\dsupport}{d_{\mathrm{support}}}
+\newcommand{\doperator}{d_{\mathrm{operator}}}
+\newcommand{\dloss}{d_{\mathrm{loss}}}
+\newcommand{\dvis}{d_{\mathrm{vis}}}
+\newcommand{\ddown}{d_{\downarrow}}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+A memory architecture can contain a useful predictive computation while local optimization is poorly positioned to construct it. We make this separation exact for finite-state memory predictors. Around an affine controller transition family, finite-horizon prediction loss is an exact multivariate polynomial in local transition strengths. We define a source-valid support construction order, a quotient occupancy-operator order, and the first nonconstant scalar-loss order, and prove
+\[
+\dsupport\leq\doperator\leq\dloss.
+\]
+Every scalar coefficient factors as $c_\alpha=-\langle G_\alpha,\log q\rangle$, separating source/path cancellation from decoder cancellation. We then prove that changing controller rows that the current source-memory process cannot exercise leaves the complete finite-horizon forward process unchanged, yet such dormant rewiring can change construction order after a learned entrance makes those rows reachable. One exact forward-equivalence class realizes orders one through five when only dormant topology varies. Construction order determines local homogeneity, whereas its conversion to optimization time depends on parameterization and metric: isolated affine-probability flow has the known finite/logarithmic/$\delta^{-(d-2)}$ hierarchy, while rare-edge Euclidean softmax flow scales as $\delta^{-d}$. An independent linear state-space delay model trained with ordinary autograd reproduces loss orders one through five from identical current zero predictors. Thus forward-equivalent memory systems can expose the same future useful computation to learning at radically different local orders.
+\end{abstract}
+
+\input{sections/01_introduction}
+\input{sections/02_construction_order}
+\input{sections/03_dormant_topology}
+\input{sections/04_optimization_geometry}
+\input{sections/05_smooth_validation}
+\input{sections/06_related_limitations}
+\input{sections/07_conclusion}
+
+\input{reproducibility_statement}
+\input{ai_use_statement}
+
+\clearpage
+\ificlrstyle
+  % Replace with the bibliography command/style required by the official ICLR
+  % 2027 example source if it differs. Do not infer final formatting from the
+  % fallback build.
+  \bibliographystyle{iclr2027_conference}
+\else
+  \bibliographystyle{plainnat}
+\fi
+\bibliography{../references}
+
+\appendix
+\input{appendix}
+
+\end{document}
