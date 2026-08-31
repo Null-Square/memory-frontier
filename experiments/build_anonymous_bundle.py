@@ -3,7 +3,8 @@
 The exporter is deliberately whitelist-based.  It includes the installable
 package, exact regression suite, reference data, and the three presentation/
 validation experiments needed by the paper.  Development history, paper sources,
-docs, Git metadata, and repository README files are excluded.
+docs, Git metadata, repository README files, release-tooling tests, and generated
+editable-install metadata are excluded.
 
 The output is deterministic: files are sorted, ZIP timestamps/permissions are
 fixed, and a SHA-256 manifest is embedded.  Before writing the archive, every
@@ -56,6 +57,16 @@ INCLUDE_TREES = (
     Path("tests"),
     Path("data"),
 )
+EXCLUDE_FILES = {
+    # This test deliberately contains fake identity strings to exercise the
+    # scanner and is release tooling rather than scientific evidence.
+    Path("tests/test_anonymous_bundle.py"),
+}
+EXCLUDE_DIR_NAMES = {
+    "__pycache__",
+    ".pytest_cache",
+    ".mypy_cache",
+}
 
 GENERIC_IDENTITY_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     (
@@ -112,6 +123,15 @@ def _is_text(path: Path) -> bool:
     return path.suffix.lower() in TEXT_SUFFIXES
 
 
+def _generated_or_excluded(relative: Path) -> bool:
+    if relative in EXCLUDE_FILES:
+        return True
+    for part in relative.parts:
+        if part in EXCLUDE_DIR_NAMES or part.endswith(".egg-info"):
+            return True
+    return relative.suffix in {".pyc", ".pyo"}
+
+
 def collect_export_files(root: Path) -> tuple[Path, ...]:
     """Return the sorted whitelist of repository files to export."""
     root = root.resolve()
@@ -131,9 +151,7 @@ def collect_export_files(root: Path) -> tuple[Path, ...]:
             if not path.is_file():
                 continue
             relative = path.relative_to(root)
-            if any(part in {"__pycache__", ".pytest_cache", ".mypy_cache"} for part in relative.parts):
-                continue
-            if path.suffix in {".pyc", ".pyo"}:
+            if _generated_or_excluded(relative):
                 continue
             selected.add(relative)
 
