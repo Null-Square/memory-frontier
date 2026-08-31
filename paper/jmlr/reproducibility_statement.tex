@@ -1,0 +1,19 @@
+\section*{Reproducibility Statement}
+
+The public research repository at
+\url{https://github.com/Null-Square/memory-frontier}
+contains the implementation, exact theorem fixtures, adversarial counterexamples,
+paper-figure generator, and release automation. The complete regression suite is
+run in continuous integration. Headline exact regressions cover the
+support/operator/loss construction-order hierarchy, dormant forward equivalence,
+regular reparameterization behavior, affine and softmax-boundary dynamics, the
+independent linear state-space validation, and near-degeneracy counterexamples.
+
+Two broader evidence programs remain outside CI by design: the frozen
+1,000-controller census within one exact forward-equivalence class and the
+illustrative linear-state-space optimization audit. Their seeds, configurations,
+and expected headline outputs are frozen in the repository. The four main figures
+are produced by a deterministic script and are covered by a headless render smoke
+test. A reviewer-facing reproduction guide maps each paper claim to its exact test
+or experiment and gives a short path for installation, testing, evidence
+reproduction, figure generation, and paper compilation.

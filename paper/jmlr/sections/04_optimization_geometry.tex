@@ -1,0 +1,63 @@
+\section{From construction order to optimization geometry}
+\label{sec:dynamics}
+
+The scalar loss order is a visibility order: a nonzero leading term need not provide descent on the admissible transition cone. Let
+\[
+L(x)-L(0)=P_d(x)+P_{d+1}(x)+\cdots
+\]
+with homogeneous $P_d\not\equiv0$, and let $K$ be the cone of admissible local perturbation rays. Define $\dvis=d$ and let $\ddown$ be the least first-visible degree along a ray $v\in K$ whose leading coefficient is negative. Then
+\begin{proposition}
+\label{prop:descent}
+$\ddown\geq\dvis$, with equality iff $P_{\dvis}(v)<0$ for some admissible ray $v$.
+\end{proposition}
+This follows directly from the one-dimensional expansion $L(tv)-L(0)=t^{d(v)}P_{d(v)}(v)+o(t^{d(v)})$. Our bootstrap fixtures satisfy the sign condition explicitly: their isolated leading term is
+\[
+L-L_0=-C\prod_{i=1}^d x_i,\qquad C>0,
+\]
+on the positive construction cone, so $\ddown=\dloss=d$.
+
+\paragraph{Affine probability coordinates.}
+For independent coordinates initialized symmetrically at $x_i(0)=\delta>0$, Euclidean gradient flow preserves $x_i=x$ and gives $\dot x=Cx^{d-1}$. The exact time to a fixed threshold $\theta>\delta$ is
+\[
+\tau_d(\delta,\theta)=
+\begin{cases}
+(\theta-\delta)/C,&d=1,\\
+C^{-1}\log(\theta/\delta),&d=2,\\
+\big(\delta^{2-d}-\theta^{2-d}\big)/(C(d-2)),&d\geq3.
+\end{cases}
+\]
+Thus the small-initialization classes are finite, logarithmic, and $\Theta(\delta^{-(d-2)})$. These homogeneous-flow exponents are known dynamics; the finite-memory result tells us which degree $d$ a dormant topology exposes.
+
+A fixed positive diagonal preconditioner changes the balanced geometry and prefactor but not this degree-controlled class. More generally, a smooth local reparameterization $\varepsilon=\phi(\theta)$ with nonsingular Jacobian $J=D\phi(0)$ preserves scalar vanishing order because $P_d(\phi(\theta))=P_d(J\theta)+O(\|\theta\|^{d+1})$ and $P_d\circ J$ is nonzero. This does \emph{not} make Euclidean trajectories coordinate invariant.
+
+\paragraph{Simplex boundary.}
+The absent-edge point is singular for a softmax/logit chart. For the same isolated degree-$d$ construction with $p_i=\sigma(z_i)$ and symmetric rare-edge probability $p$, Euclidean logit flow gives
+\[
+\dot p=Cp^{d+1}(1-p)^2,
+\]
+so for fixed positive threshold
+\[
+\boxed{\tau_d^{\mathrm{logit}}(\delta)=\frac{1}{Cd}\delta^{-d}(1+o(1)).}
+\]
+For a full $K$-way softmax target edge,
+\[
+\|\nabla_z p\|^2=p^2\left((1-p)^2+\sum_aq_a^2\right),
+\]
+and
+\[
+\frac{K}{K-1}p^2(1-p)^2\leq\|\nabla_zp\|^2\leq2p^2(1-p)^2.
+\]
+Hence an isolated symmetric degree-$d$ target construction still has $\dot p=\Theta(p^{d+1})$ near the rare-edge boundary for fixed $K$. The absolute bootstrap exponent is therefore parameterization-dependent, but a one-unit scaffold reduction in $d$ removes one rare-edge power from the asymptotic time in this geometry as well.
+
+\begin{figure}[t]
+\centering
+\maybegraphics[width=\linewidth]{figures/figure4_order_to_time_geometry.pdf}
+\caption{Construction order fixes local homogeneity, not an optimizer-invariant clock. The same degree maps to different completion-time classes under affine probability and rare-edge softmax Euclidean flow.}
+\label{fig:geometry}
+\end{figure}
+
+The intended causal chain is
+\[
+\boxed{\text{dormant topology}\to\text{construction order}\to\text{optimizer geometry}\to\text{bootstrap time}.}
+\]
+Appendix~\ref{app:dynamics} gives the exact integrations, repeated-parameter extension, and singular-chart derivations.

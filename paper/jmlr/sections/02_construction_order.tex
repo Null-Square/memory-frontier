@@ -1,0 +1,58 @@
+\section{Construction order in finite-memory prediction}
+\label{sec:order}
+
+Let a finite unifilar source have states $s\in\mathcal S$, alphabet $x\in\mathcal X$, emission probabilities $e_s(x)$, deterministic source update $f(s,x)$, and stationary distribution $\pi$. A controller has memory states $m\in\mathcal M$, reset state $m_0$, transition law $P(m'\mid m,x)$, and strictly positive decoder rows $q_m(x)$. We study a local affine transition family
+\[
+P_\varepsilon=P_0+\sum_{j=1}^n\varepsilon_jD_j,
+\]
+where every direction $D_j$ has zero row sum. When an actual stochastic controller is required we restrict to a sufficiently small valid neighborhood.
+
+Let $\mu_t^\varepsilon(s,m)=\Pr(S_t=s,M_t=m)$ before prediction. For horizon $T$,
+\[
+L_T(\varepsilon)=-\frac1T\sum_{t=0}^{T-1}\sum_{s,m,x}
+\mu_t^\varepsilon(s,m)e_s(x)\log q_m(x).
+\]
+Because the transition family is affine and $T$ is finite, $L_T$ is an exact multivariate polynomial of degree at most $T-1$. Writing the one-step product operator as $\mathcal B(\varepsilon)=\mathcal B_0+\sum_j\varepsilon_j\mathcal B_j$, each occupancy coefficient $\mu_{t,\alpha}$ is a signed sum over source-valid product-state walks using direction $D_j$ exactly $\alpha_j$ times. The source marginal is controller-independent, hence
+\[
+\sum_m\mu_{t,\alpha}(s,m)=0,\qquad |\alpha|>0.
+\]
+
+\paragraph{Readout quotient.}
+Memory states are equivalent when they have identical decoder rows, $m\sim m'\Leftrightarrow q_m=q_{m'}$. Let $\mathcal C$ denote these classes and define
+\[
+G_\alpha(C,x)=\frac1T\sum_{t,s}\sum_{m\in C}\mu_{t,\alpha}(s,m)e_s(x).
+\]
+Then every scalar coefficient factors exactly as
+\begin{equation}
+[\varepsilon^\alpha]L_T=c_\alpha
+=-\sum_{C,x}G_\alpha(C,x)\log q_C(x)
+=-\langle G_\alpha,\log q\rangle.
+\label{eq:factorization}
+\end{equation}
+
+Let $C_0$ be the reset readout class. The \emph{support order} $\dsupport$ is the minimum perturbative-edge count on a source-valid walk, within the horizon, that reaches a memory state outside $C_0$, assigning cost zero to supported base transitions and cost one to transitions supplied by any perturbation direction. The \emph{operator order} and \emph{loss order} are
+\[
+\doperator=\min\{|\alpha|>0:G_\alpha\neq0\},\qquad
+\dloss=\min\{|\alpha|>0:c_\alpha\neq0\}.
+\]
+We focus on the \emph{construction-origin} regime $\dsupport\geq1$.
+
+\begin{theorem}[Construction-order hierarchy]
+\label{thm:hierarchy}
+In the construction-origin regime,
+\[
+\boxed{\dsupport\leq\doperator\leq\dloss.}
+\]
+\end{theorem}
+\begin{proof}[Proof sketch]
+If $|\alpha|<\dsupport$, no source-valid walk with that many perturbative factors can leave $C_0$. Thus the coefficient occupancy vanishes outside $C_0$; inside $C_0$, source-marginal conservation forces the aggregate nonconstant coefficient to cancel. Hence $G_\alpha=0$, proving the first inequality. The second follows immediately from Eq.~\eqref{eq:factorization}. Full proofs are in Appendix~\ref{app:core}.
+\end{proof}
+
+The hierarchy distinguishes two exact failure modes. If $\doperator>\dsupport$, minimal-cost construction walks exist but their signed source-weighted quotient effects cancel. If $\dloss>\doperator$, the first nonzero operator is annihilated by the decoder log-vector. A regression fixture realizes $(\dsupport,\doperator,\dloss)=(1,1,2)$, so the intermediate operator level is necessary. Conversely, under stated nondegeneracy conditions the candidate operator entries and decoder coupling are nonzero real-analytic functions of continuous parameters; their simultaneous zero sets have measure zero. Thus the hierarchy is generically saturated within a fixed support/equality cell, while exact cancellations remain diagnostically meaningful.
+
+\begin{figure}[t]
+\centering
+\maybegraphics[width=\linewidth]{figures/figure2_order_hierarchy.pdf}
+\caption{Three construction orders separate source-valid path cost, signed quotient occupancy, and scalar decoder visibility. Either inequality can be strict through a distinct cancellation mechanism.}
+\label{fig:hierarchy}
+\end{figure}

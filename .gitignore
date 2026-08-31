@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+.venv/
+dist/
+paper/generated_figures/
+paper/jmlr/figures/
+paper/jmlr/*.aux
+paper/jmlr/*.bbl
+paper/jmlr/*.blg
+paper/jmlr/*.log
+paper/jmlr/*.out
+paper/jmlr/*.pdf
+paper/jmlr/jmlr2e.sty

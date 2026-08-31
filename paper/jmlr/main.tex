@@ -1,0 +1,67 @@
+\documentclass[twoside,11pt]{article}
+
+\usepackage{jmlr2e}
+\usepackage{amsmath,amsfonts,mathtools,booktabs}
+\usepackage{microtype}
+\usepackage{placeins}
+\hypersetup{hidelinks}
+
+\usepackage{lastpage}
+\jmlrheading{0}{2026}{1-\pageref{LastPage}}{Submitted 2026}{Under Review}{XX-XXXX}{Author}
+\ShortHeadings{Construction Order in Finite-State Memory}{Author}
+\firstpageno{1}
+
+\title{Same Predictor, Different Learnability:\\Construction Order in Finite-State Memory}
+
+\input{author_metadata.tex}
+
+\editor{Under Review}
+
+% jmlr2e supplies the proof, theorem, proposition, lemma, corollary,
+% definition, remark, conjecture, axiom, and example environments.
+\newcommand{\dsupport}{d_{\mathrm{support}}}
+\newcommand{\doperator}{d_{\mathrm{operator}}}
+\newcommand{\dloss}{d_{\mathrm{loss}}}
+\newcommand{\dvis}{d_{\mathrm{vis}}}
+\newcommand{\ddown}{d_{\downarrow}}
+\newcommand{\maybegraphics}[2][]{%
+  \IfFileExists{#2}{\includegraphics[#1]{#2}}{%
+    \fbox{\parbox[c][1.15in][c]{0.94\linewidth}{\centering
+    Generated figure placeholder:\\ \texttt{#2}}}}%
+}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+A memory architecture can contain a useful predictive computation while local optimization is poorly positioned to construct it. We make this separation exact for finite-state memory predictors. Around an affine controller transition family, finite-horizon prediction loss is an exact multivariate polynomial in local transition strengths. We define a source-valid support construction order, a quotient occupancy-operator order, and the first nonconstant scalar-loss order, proving
+\[
+\dsupport\leq\doperator\leq\dloss.
+\]
+Each scalar coefficient factors as $c_\alpha=-\langle G_\alpha,\log q\rangle$, separating source/path cancellation from decoder cancellation. We also prove that rewiring controller rows unused by the current source-memory process leaves the entire current finite-horizon predictor unchanged, yet can change construction order once learning makes those rows reachable. One forward-equivalence class realizes orders one through five solely through dormant topology. Construction order fixes local homogeneity, while parameterization and metric determine its conversion to optimization time: affine-probability flow yields the finite/logarithmic/$\delta^{-(d-2)}$ hierarchy, whereas rare-edge Euclidean softmax flow scales as $\delta^{-d}$. A differentiable linear state-space delay model trained with autograd reproduces loss orders one through five from identical current predictors. Thus forward-equivalent memory systems can expose the same future computation to learning at radically different local orders.
+\end{abstract}
+
+\begin{keywords}
+finite-state memory, gradient accessibility, optimization geometry, recurrent learning, state-space models
+\end{keywords}
+
+\input{sections/01_introduction}
+\input{sections/02_construction_order}
+\input{sections/03_dormant_topology}
+\input{sections/04_optimization_geometry}
+\input{sections/05_smooth_validation}
+\input{sections/06_related_limitations}
+\input{sections/07_conclusion}
+
+\input{reproducibility_statement}
+\input{disclosures}
+
+\FloatBarrier
+\typeout{JMLR-MAIN-TEXT-LAST-PAGE:\thepage}
+
+\appendix
+\input{appendix}
+
+\bibliography{../references}
+
+\end{document}

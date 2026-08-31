@@ -1,156 +1,88 @@
-# Memory Frontier
+# Construction Order in Finite-State Memory
 
-**Research question:** with exactly `K` persistent discrete memory states, can a learned sequence predictor discover the globally best deterministic online algorithm for a known stochastic source?
+This repository is the research and reproducibility package for the paper **“Same Predictor, Different Learnability: Construction Order in Finite-State Memory.”**
 
-This repository starts from **exact ground truth**, not neural training. For small memory budgets we exhaust every deterministic transition table
+## Main result
 
-\[
-F:[K]\times\Sigma\to[K]
-\]
+A memory system's ability to represent a useful computation does not determine how easily gradient-based learning can construct that computation.
 
-and score each controller analytically under next-token log loss.
-
-Finite-state prediction itself is classical. The research target here is narrower: construct source-specific exact controller ground truth, characterize when optimal bounded memory requires history-dependent aliases rather than a fixed quotient of predictive states, freeze those predictions before training, and then test whether gradient descent discovers the predicted algorithms.
-
-## Two exact oracles
-
-For a unifilar source with state `S_t`, emitted token `X_{t+1}`, and deterministic memory `M_t`,
+For a finite-horizon affine controller family, the first local degree at which a latent computation becomes visible obeys
 
 \[
-M_{t+1}=F(M_t,X_{t+1}).
+d_{\mathrm{support}}\le d_{\mathrm{operator}}\le d_{\mathrm{loss}}.
 \]
 
-### Asymptotic oracle
+- `d_support`: minimum source-valid perturbative construction cost to reach a distinct predictive readout class.
+- `d_operator`: first nonzero quotient occupancy construction operator.
+- `d_loss`: first nonconstant scalar-loss degree after decoder cancellation.
 
-The source begins in stationarity and the controller in a chosen state `m0`. We score the Cesaro occupancy of the product chain `(S_t,M_t)`, so periodic chains and multiple recurrent classes are handled explicitly. For fixed `(F,m0)`, the optimal readout is analytic and the loss is
+The coefficient factorization separates source/path cancellation from decoder cancellation. A second theorem shows that rewiring transition rows never exercised by the current source-memory process leaves the entire current finite-horizon predictor unchanged, yet can change construction order once learning makes those dormant rows reachable.
 
-\[
-L(F,m_0)=H(X_{t+1}\mid M_t).
-\]
+## Headline evidence
 
-The deterministic frontier is
-
-\[
-L_K^{det}=\min_{F,m_0}L(F,m_0).
-\]
-
-### Finite-horizon reset oracle
-
-Neural training usually resets memory at sequence boundaries. For a length-`T` sequence we therefore also compute the exact average occupancy over `t=0,...,T-1` and optimize the single shared readout. This gives
-
-\[
-L_{K,T}^{det}=\min_{F,m_0}L_T(F,m_0),
-\]
-
-which matches the actual reset-sequence training objective and charges transient/synchronization behavior instead of making it free.
-
-For a binary alphabet there are only `K^(2K)` transition tables: 16 at `K=2`, 729 at `K=3`, and 65,536 at `K=4`.
-
-## Source laboratory
-
-Random experimental sources are deliberately restricted to be:
-
-1. strongly connected,
-2. strictly positive in every emission probability,
-3. exactly synchronizing, and
-4. pairwise distinct in their one-step emission laws.
-
-The synchronization condition is essential. A generic unifilar hidden-state machine need not expose its state from token history, which would confound memory limitation with hidden-state estimation. The included generator searches for a finite reset word and rejects non-synchronizing sources.
-
-On this controlled source class the current theory notes establish the working ordering
-
-\[
-L_K^{static}\le L_K^{det}\le L_K^{quotient},
-\]
-
-where `static` is the best unrestricted `K`-way source-state partition and `quotient` is the best recursively closed partition. See [`docs/theory.md`](docs/theory.md) for assumptions and proof sketches.
-
-## First witness
-
-The included four-state source is exactly synchronizing: token word `11` sends every source state to A. At `K=2` it gives:
-
-| quantity | NLL (nats/token) |
-|---|---:|
-| Bayes, full source state | 0.4662344730 |
-| best static 2-way state partition | 0.4840697673 |
-| **best deterministic 2-state online controller** | **0.6297909185** |
-| best recursively closed 2-way state partition | 0.6886553518 |
-
-The optimal asymptotic controller is
+Inside one exact forward-equivalence class, only dormant zero-cost wiring is randomized. The frozen 1,000-controller census finds exact orders 1–5 with counts
 
 ```text
-        token 0   token 1
-M=0        0         1
-M=1        0         1
+order:   1    2    3    4   5
+count: 235  282  244  155  84
 ```
 
-so it remembers the previous token. One true source state has positive stationary mass in both memory states, therefore the optimal controller is **not** a fixed map `M=g(S)`: it uses history-dependent aliases.
+with zero hierarchy violations.
 
-For finite reset sequences the exact optimal algorithm changes with horizon. On this witness:
+The paper also establishes:
 
-```text
-T=1  -> trivial memory
-T=2  -> [[0,0],[0,1]]
-T=3  -> [[0,0],[1,0]]
-T>=4 -> [[0,1],[0,1]]  (last-symbol memory, for the tested horizons)
-```
+- construction order is preserved by regular local reparameterizations;
+- singular charts can change the order;
+- positive diagonal preconditioning changes constants/balance geometry but not the isolated degree-controlled escape class;
+- rare-edge Euclidean softmax converts degree `d` to a `Theta(delta^-d)` bootstrap-time exponent;
+- an independent differentiable linear state-space delay model reproduces loss orders 1–5 using ordinary autograd;
+- exact near-degeneracy counterexamples show where leading route/mode predictions can fail.
 
-These are precomputable algorithm-level predictions for later neural experiments.
+## Reviewer quick start
 
-## Exact optimization landscape
-
-For fixed `(source,K,T,m0)`, `finite_horizon_hard_landscape` constructs the complete graph of deterministic algorithms. Nodes are transition tables and directed edges alter exactly one transition target. Every node and edge is scored with exact finite-horizon expected log loss.
-
-At binary `K=2` the graph has 16 nodes and 64 directed one-edit edges, so global minima, one-edit local minima, exact improvement directions, and loss gaps are fully enumerable.
-
-The optional Torch module adds a hard-forward straight-through learner and a **canonical STE field** for comparing gradient direction with exact one-edit finite differences. The convention is explicit: occupied memory states use their hard-controller Bayes readout and unoccupied states use the source marginal. This avoids silently differentiating through an undefined readout optimum at zero occupancy.
-
-On the four-state witness at `K=2,T=32`, the exact hard optimum has two transition decisions whose canonical straight-through pressure points opposite to the exact one-edit direction across tested logit margins `0.05..4.0`. By contrast, the frozen horizon-switch source's `T=32` optimum is fully aligned under the same convention. See [`docs/optimization.md`](docs/optimization.md).
-
-The exact-distribution learner carries a literal hard categorical memory state and never samples token sequences: it propagates `P(S_t,M_t)` analytically while using a straight-through Jacobian only for the memory transition. Batched random seeds have disjoint parameters and are batched only for speed.
-
-## Theory cards
-
-`theory_card(source, K)` records and hashes the pre-training ground truth, including:
-
-- source transition/emission tables and stationary distribution,
-- shortest synchronizing word,
-- Bayes, static, deterministic, and quotient losses,
-- exact optimal deterministic transition table,
-- alias entropy `H(M|S)`,
-- full controller-spectrum summary,
-- distinct-loss gap and near-optimal counts, and
-- a SHA-256 digest for freezing the card before model training.
-
-## Run
+Python 3.11 is the reference environment.
 
 ```bash
-python -m pip install -e '.[dev]'
-pytest -q
-python examples/witness_report.py
-python examples/witness_horizon_report.py
-python examples/scan_sources.py --count 500 --states 4 --memory 2
-```
-
-Optional optimization experiments:
-
-```bash
+python -m pip install --upgrade pip
 python -m pip install -e '.[dev,optimization]'
-pytest -q tests/test_surrogate.py
-python examples/ste_reference_report.py
+pytest -q
 ```
 
-## Research discipline
+Reproduce the two frozen outside-CI evidence programs:
 
-1. Derive and freeze exact oracle results before neural training.
-2. Keep persistent-state cardinality literal: no hidden continuous state, context window, or KV cache.
-3. Match the oracle horizon/reset semantics to the learner's training objective.
-4. Compare learned **transition algorithms**, not only losses.
-5. Treat stochastic state transitions as a separate computational resource class.
-6. Use synchronized source families and matched controls rather than arbitrary HMMs.
-7. Treat classical finite-state prediction, recursive information bottleneck, automata reduction, and predictive rate-distortion as prior foundations rather than novelty claims.
-8. State surrogate-gradient embedding/readout conventions explicitly; do not treat them as intrinsic properties of a hard table.
+```bash
+python experiments/forward_equivalence_order_census.py
+python experiments/linear_ssm_validation.py
+```
 
-## Current milestone
+Generate the four paper figures:
 
-The repository now contains the hardened asymptotic and finite-horizon oracles, synchronized source lab, controller spectra, frozen reference suite, exact hard-controller landscapes, canonical straight-through diagnostics, and a batched exact-distribution hard-state learner. The next milestone is population-level testing of which exact landscape quantities predict gradient-descent algorithm recovery before scaling to larger `K` or richer neural transition functions.
+```bash
+python experiments/paper_figures.py --outdir paper/generated_figures
+```
+
+For claim-to-code provenance, exact expected outputs, and the journal build, see [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md).
+
+## Paper workspaces
+
+- `paper/jmlr/` — primary journal submission workspace.
+- `paper/iclr2027/` — secondary conference-formatted workspace retained for portability.
+- `paper/references.bib` — canonical bibliography.
+- `paper/manuscript.md` — long-form canonical prose manuscript.
+
+The JMLR workspace uses the official `jmlr2e` template and has its own CI build. It produces a PDF, source bundle, reviewer code bundle, and build report.
+
+## Repository map
+
+- `src/memory_frontier/` — exact finite-memory oracles and construction/accessibility utilities.
+- `tests/` — exact theorem fixtures and adversarial regressions.
+- `experiments/` — frozen breadth evidence, optimizer audits, and figure generation.
+- `data/` — frozen reference data.
+- `docs/` — supporting theory and research notes.
+- `paper/` — manuscript, appendices, bibliography, venue workspaces, and release documentation.
+
+## Claim discipline
+
+The paper does **not** claim that vanishing gradients, finite-state-controller polynomial objectives, deep-linear balancedness, singular/dead directions, same-function optimization differences, or softmax slowness are new. The paper's narrow contribution is the source-aware local construction-order framework and dormant-topology intervention within a fixed current forward-equivalence class.
+
+Exact algebraic claims are regression tested. The 1,000-controller census and long optimizer audits remain outside CI by design and are reported as breadth/dynamics evidence rather than universal theorems.

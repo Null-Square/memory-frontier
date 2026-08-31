@@ -1,0 +1,9 @@
+\section{Conclusion}
+
+Predictive capacity does not determine gradient accessibility. In finite-memory predictors, we can hold the current source-conditioned forward process fixed while changing behaviorally dormant topology, and thereby change the local order at which a future predictive computation becomes visible to learning. The exact hierarchy
+\[
+\dsupport\leq\doperator\leq\dloss
+\]
+separates source-valid construction cost, signed occupancy cancellation, and decoder cancellation; the dormant forward-equivalence theorem makes the intervention behaviorally exact rather than approximate.
+
+Construction order is a structural local homogeneity, not a universal clock. Its optimization consequence depends on the admissible descent direction and the parameterization/metric: affine probability and rare-edge softmax flow produce different absolute bootstrap classes, while both preserve a severe advantage for lower-order dormant scaffolds. The same order spectrum reappears in a smooth linear recurrent memory trained by ordinary autograd. These results suggest that learned memory should be analyzed not only by what an architecture can represent or currently computes, but also by the latent constructions its present topology makes locally accessible.
