@@ -64,13 +64,23 @@ def test_current_whitelisted_repository_payload_passes_generic_identity_audit():
     module.audit_export(ROOT, files, deny_markers=())
 
 
-def test_bundle_is_deterministic_and_contains_verified_manifest(tmp_path: Path):
+def test_bundle_is_deterministic_anonymized_and_contains_verified_manifest(
+    tmp_path: Path,
+):
     module = _module()
     first = tmp_path / "first.zip"
     second = tmp_path / "second.zip"
 
-    _, files_first = module.build_bundle(ROOT, first)
-    _, files_second = module.build_bundle(ROOT, second)
+    _, files_first = module.build_bundle(
+        ROOT,
+        first,
+        deny_markers=(module.SOURCE_DISTRIBUTION_NAME, module.SOURCE_MODULE_NAME),
+    )
+    _, files_second = module.build_bundle(
+        ROOT,
+        second,
+        deny_markers=(module.SOURCE_DISTRIBUTION_NAME, module.SOURCE_MODULE_NAME),
+    )
 
     assert files_first == files_second
     assert first.read_bytes() == second.read_bytes()
@@ -81,10 +91,24 @@ def test_bundle_is_deterministic_and_contains_verified_manifest(tmp_path: Path):
         assert "submission_code/README.md" in names
         assert "submission_code/pyproject.toml" in names
         assert "submission_code/MANIFEST.sha256" in names
+        assert "submission_code/src/anonymous_memory/__init__.py" in names
+        assert not any("src/memory_frontier/" in name for name in names)
         assert not any("paper/" in name for name in names)
         assert not any("docs/" in name for name in names)
         assert not any(".egg-info/" in name for name in names)
         assert "submission_code/tests/test_anonymous_bundle.py" not in names
+
+        pyproject = archive.read("submission_code/pyproject.toml").decode("utf-8")
+        assert 'name = "anonymous-memory"' in pyproject
+        assert module.SOURCE_DISTRIBUTION_NAME not in pyproject
+        assert module.SOURCE_MODULE_NAME not in pyproject
+
+        for name in names:
+            if Path(name).suffix.lower() not in module.TEXT_SUFFIXES:
+                continue
+            text = archive.read(name).decode("utf-8")
+            assert module.SOURCE_DISTRIBUTION_NAME not in text
+            assert module.SOURCE_MODULE_NAME not in text
 
         manifest = archive.read("submission_code/MANIFEST.sha256").decode("utf-8")
         for line in manifest.strip().splitlines():
