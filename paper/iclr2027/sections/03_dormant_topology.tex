@@ -1,0 +1,44 @@
+\section{Same forward process, different accessibility}
+\label{sec:dormant}
+
+The hierarchy analyzes a local family around a base controller. We now show that the base itself can change in ways that are exactly invisible to the current predictor yet alter the construction geometry exposed after a learned entrance.
+
+Call controller row $(m,x)$ \emph{forward-active through horizon $T$} if, at some transition time, the reference source-memory process can occupy memory $m$ jointly with a source state that emits $x$ with positive probability. Otherwise the row is \emph{forward-dormant}. This is source-aware: even a symbol-conditioned row of a reachable memory state can be dormant if that symbol is impossible in every source state co-occurring with that memory.
+
+\begin{theorem}[Dormant forward equivalence]
+\label{thm:forward-equivalence}
+Let $P_0$ and $\widetilde P_0$ have the same source, reset memory, and finite horizon. If they agree on every row forward-active under $P_0$, then
+\[
+\boxed{\widetilde\mu_t(s,m)=\mu_t(s,m)\quad\text{for all }s,m,t<T.}
+\]
+Thus every fixed decoder gives exactly the same current finite-horizon prediction process and loss.
+\end{theorem}
+\begin{proof}[Proof sketch]
+The occupancies agree at reset. If they agree at time $t$, every positive-probability contribution to the next occupancy uses a row that is forward-active under the reference process. The controllers agree on that row, while source emissions and successors are shared, so the next occupancies agree. Induction proves the claim. Appendix~\ref{app:core} gives the full proof.
+\end{proof}
+
+The theorem constrains only the current base process. A perturbative edge can make a previously dormant region reachable; once entered, zero-cost base wiring stored there becomes usable. Prewiring a dormant suffix can therefore reduce the number of missing factors needed to reach a distinct decoder class without changing the current predictor at all. A deterministic chain family realizes every order $1,\ldots,R$ inside one forward-equivalence class.
+
+\begin{figure}[t]
+\centering
+\maybegraphics[width=\linewidth]{figures/figure1_forward_equivalence.pdf}
+\caption{Dormant topology is behaviorally invisible at the base but changes the number of learned edges required after an entrance opens. All panels have the same current forward process.}
+\label{fig:dormant-scaffold}
+\end{figure}
+
+\paragraph{Fixed-class randomized audit.}
+To test that this is not a single hand-built chain, we freeze source, architecture, decoder, currently reachable dynamics, horizon, and the five trainable directions. Only zero-cost wiring among behaviorally unreachable states is randomized. Every sample is first certified as a dormant rewire using Theorem~\ref{thm:forward-equivalence}; the exact construction-order oracle then computes the triple. Across 1,000 controllers, all three orders coincide and span one through five:
+\[
+\begin{array}{c|ccccc}
+\text{order} & 1&2&3&4&5\\\hline
+\text{count} & 235&282&244&155&84.
+\end{array}
+\]
+There are zero hierarchy violations. This is breadth evidence within one exact forward-equivalence class, not a population claim about naturally trained networks.
+
+\begin{figure}[t]
+\centering
+\maybegraphics[width=0.86\linewidth]{figures/figure3_forward_class_census.pdf}
+\caption{Exact construction orders in 1,000 controllers from one fixed forward-equivalence class. Only dormant zero-cost wiring varies.}
+\label{fig:census}
+\end{figure}

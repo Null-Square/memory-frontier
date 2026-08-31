@@ -1,0 +1,106 @@
+\section{Core finite-memory proofs}
+\label{app:core}
+
+\subsection{Exact coefficient recursion}
+Let $\mathcal B(\varepsilon)=\mathcal B_0+\sum_j\varepsilon_j\mathcal B_j$ be the one-step source-memory propagation operator and write
+\[
+\mu_t^\varepsilon=\sum_{\alpha\in\mathbb N^n}\varepsilon^\alpha\mu_{t,\alpha}.
+\]
+Equating monomials in $\mu_{t+1}^\varepsilon=\mathcal B(\varepsilon)\mu_t^\varepsilon$ gives
+\[
+\mu_{t+1,\alpha}=\mathcal B_0\mu_{t,\alpha}
++\sum_{j:\alpha_j>0}\mathcal B_j\mu_{t,\alpha-e_j}.
+\]
+Thus $\mu_{t,\alpha}$ is a signed sum over source-valid walks with exactly $\alpha_j$ uses of direction $D_j$. Because the source marginal is independent of controller parameters,
+\[
+\sum_m\mu_{t,\alpha}(s,m)=0,\qquad |\alpha|>0.
+\]
+These identities also establish the exact finite-horizon polynomial representation used in the tests.
+
+\subsection{Proof of Theorem~\ref{thm:hierarchy}}
+Fix nonzero $\alpha$ with $|\alpha|<\dsupport$. No source-valid walk containing that many perturbative factors can reach a decoder class different from the reset class $C_0$. Hence every corresponding coefficient occupancy outside $C_0$ vanishes. Inside $C_0$,
+\[
+\sum_{m\in C_0}\mu_{t,\alpha}(s,m)
+=\sum_m\mu_{t,\alpha}(s,m)=0,
+\]
+so after source weighting and time averaging $G_\alpha=0$. Therefore no quotient-operator term appears below $\dsupport$, proving $\dsupport\leq\doperator$. Equation~\eqref{eq:factorization} then implies that every vanishing operator coefficient has a vanishing scalar coefficient, proving $\doperator\leq\dloss$.
+
+The first inequality is strict only if source-valid minimal-cost walk contributions cancel after signed quotient aggregation. The second is strict only if the first nonzero quotient operator lies in the nullspace of the decoder log-vector. The regression suite includes an exact $(1,1,2)$ decoder-cancellation fixture.
+
+\subsection{Generic equality}
+Fix source, transition family, horizon, and the decoder-equality partition, with $d=\doperator<\infty$. Stack the flattened degree-$d$ operators as a nonzero matrix $\mathcal G_d$ and write $z(q)=\operatorname{vec}(\log q_C)$. Degree-$d$ scalar coefficients are $c_d(q)=-\mathcal G_dz(q)$. For any nonzero row $g$, $-g^Tz(q)$ is nonzero real analytic on the product of open decoder simplices. Its zero set has Lebesgue measure zero, so continuously sampled interior decoder values satisfy $\dloss=\doperator$ almost surely.
+
+For the first inequality, fix an irreducible source/controller support cell. The degree-$\dsupport$ operator entries are analytic in positive source probabilities, supported base probabilities, and nonzero perturbation weights. If the candidate operator is nonzero for at least one assignment in the cell, simultaneous cancellation of all entries is an analytic measure-zero set. Thus $\doperator=\dsupport$ almost surely under this nondegeneracy condition. Exact structural symmetries can violate the condition, which is why the operator layer is retained.
+
+\subsection{Proof of Theorem~\ref{thm:forward-equivalence}}
+Both controllers begin with the same source law and reset memory. Suppose their occupancies agree at time $t<T-1$. Any positive-probability term contributing to the reference next occupancy starts from a pair $(s,m)$ with positive current occupancy and uses a symbol $x$ with $e_s(x)>0$. Therefore row $(m,x)$ is forward-active under the reference process, and the two controllers agree on its complete target distribution. The current occupancy, source emission, and deterministic source successor are also shared, so every term in the next occupancy agrees. Induction gives equality for all $t<T$. Any fixed decoder applied to these identical occupancies produces the same prediction process and finite-horizon loss.
+
+\subsection{Frozen same-forward census protocol}
+The fixed audit uses seed 20260830, a persistent binary Markov source with switch probability $0.1$, six memory states, horizon 10, a common decoder, a common five-direction perturbation family, and a collapsed base whose state 0 is the only currently reachable memory. In dormant states 1--4, a zero-cost skip edge of strength $0.5$ is installed with probability $0.45$ to a uniformly chosen later dormant state; otherwise the row returns to reset. Every sample is certified as a dormant rewire before its exact order triple is computed. The resulting counts are 235, 282, 244, 155, and 84 for exact orders one through five, with zero hierarchy violations.
+
+\subsection{Visibility versus beneficial descent}
+For $L(x)-L(0)=P_d(x)+P_{d+1}(x)+\cdots$ and admissible cone $K$, define $d(v)$ as the first degree nonzero on ray $v$ and
+\[
+\ddown=\inf\{d(v):v\in K\setminus\{0\},\;P_{d(v)}(v)<0\}.
+\]
+No ray can become visible below $\dvis=d$, so $\ddown\geq\dvis$. Equality holds exactly when $P_d$ is negative on some admissible ray, since
+\[
+L(tv)-L(0)=t^{d(v)}P_{d(v)}(v)+o(t^{d(v)}).
+\]
+For example, $L(x,y)-L(0)=x-y^2$ on $\mathbb R_+^2$ has $\dvis=1$ but $\ddown=2$. The isolated scaffold fixtures instead have $P_d=-C\prod_i x_i<0$ on every interior positive ray.
+
+\section{Dynamics, parameterization, and validation}
+\label{app:dynamics}
+
+\subsection{Affine monomial completion time}
+For $L-L_0=-C\prod_{i=1}^d x_i$ and symmetric initialization $x_i(0)=\delta$, Euclidean flow reduces to $\dot x=Cx^{d-1}$. The exact time to threshold $\theta$ is
+\[
+\tau_d(\delta,\theta)=
+\begin{cases}
+(\theta-\delta)/C,&d=1,\\
+C^{-1}\log(\theta/\delta),&d=2,\\
+\dfrac{\delta^{2-d}-\theta^{2-d}}{C(d-2)},&d\geq3.
+\end{cases}
+\]
+For a general exponent-vector monomial $-C\prod_i x_i^{\alpha_i}$,
+\[
+\frac{d}{dt}\frac{x_i^2}{\alpha_i}=2C\prod_jx_j^{\alpha_j},
+\]
+so $x_i^2/\alpha_i-x_j^2/\alpha_j$ is conserved. A positive diagonal preconditioner $M=\operatorname{diag}(m_i)$ replaces this with conserved $x_i^2/(m_i\alpha_i)-x_j^2/(m_j\alpha_j)$ and changes the balanced-flow prefactor without changing total-degree asymptotic class.
+
+\subsection{Regular and singular parameterizations}
+If $L(\varepsilon)-L(0)=P_d(\varepsilon)+O(\|\varepsilon\|^{d+1})$ and $\varepsilon=\phi(\theta)$ has $\phi(0)=0$ with nonsingular $J=D\phi(0)$, then
+\[
+L(\phi(\theta))-L(0)=P_d(J\theta)+O(\|\theta\|^{d+1}).
+\]
+Because $J$ is invertible and $P_d$ is nonzero, $P_d\circ J$ is nonzero, so scalar vanishing order remains $d$. By contrast, the singular chart $\varepsilon_i=\theta_i^{r_i}$ transforms an active exponent $\alpha$ to weighted degree $\sum_i r_i\alpha_i$; the pulled-back order is the minimum such weighted degree over active monomials.
+
+\subsection{Rare-edge softmax boundary}
+For $L-L_0=c\prod_{i=1}^dp_i$ with $c<0$ and binary logits $p_i=\sigma(z_i)$, symmetry gives
+\[
+\dot p=(-c)p^{d+1}(1-p)^2.
+\]
+Writing $C=-c$, the exact completion time is
+\[
+\tau_d^{\mathrm{logit}}(\delta,\theta)=\frac1C\int_\delta^\theta\frac{dp}{p^{d+1}(1-p)^2},
+\]
+with asymptotic $\tau_d^{\mathrm{logit}}=(Cd)^{-1}\delta^{-d}(1+o(1))$ for fixed positive $\theta$. For a full $K$-way softmax target probability $p$ and non-target probabilities $q_a$,
+\[
+\|\nabla_zp\|^2=p^2\left((1-p)^2+\sum_aq_a^2\right),
+\]
+and
+\[
+\frac{K}{K-1}p^2(1-p)^2\leq\|\nabla_zp\|^2\leq2p^2(1-p)^2.
+\]
+Thus, for fixed $K$, an isolated symmetric degree-$d$ target construction has $\dot p=\Theta(p^{d+1})$ near zero. This is a boundary-specific metric statement, not an optimizer-invariant theorem.
+
+\subsection{Linear state-space validation}
+For the depth-$R$ delay line in Section~\ref{sec:ssm}, the gain is $g=\prod_iw_i$ and the frozen scored MSE is $L=\tfrac12(g-1)^2$. If the first $r$ links move together at scale $s$ while downstream links remain one, then
+\[
+\frac12-L=s^r-\frac12s^{2r},\qquad
+\|\nabla_{1:r}L\|_2=\sqrt r(1-s^r)s^{r-1}.
+\]
+These identities are checked directly against PyTorch autograd. At exact zero, only $r=1$ has nonzero missing-link gradient. The illustrative fixed-step SGD threshold counts are 4, 43, 361, 3965, and 53327 for $r=1,\ldots,5$; they are not claimed as universal optimization laws.
+
+\section{Near-degeneracy and secondary robustness}
+When multiple routes compete, leading order is local rather than globally decisive. Exact repository fixtures show both a scalar route-race reversal and a nearly degenerate bilinear singular-mode reversal when the leading margin is comparable to the first neglected higher-order correction. Shared-route balance laws and approximate-invariant drift are also available as supporting theory. These results delimit the scope of the main isolated-route time interpretation; they are not needed for Theorems~\ref{thm:hierarchy} or~\ref{thm:forward-equivalence}.

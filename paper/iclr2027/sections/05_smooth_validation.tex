@@ -1,0 +1,21 @@
+\section{Independent smooth recurrent validation}
+\label{sec:ssm}
+
+The finite-memory theorem is derived from exact stochastic-controller polynomials. To test whether the order phenomenon depends on that discrete formalism, we use a separate differentiable linear delay line trained by ordinary PyTorch autograd. For scalar input $u_t$ and depth $R$,
+\[
+h_{1,t+1}=w_1u_t,\qquad h_{i,t+1}=w_i h_{i-1,t},\quad \hat u_t=h_{R,t}.
+\]
+The end-to-end gain is exactly $g=\prod_{i=1}^Rw_i$. On the frozen binary sequence used in the regression, the scored target has squared value one at every time, so
+\[
+L=\frac12(g-1)^2.
+\]
+
+For each order $r\in\{1,\ldots,5\}$, set the first $r$ links to zero and all downstream links to one. Every base initialization then implements exactly the same zero predictor and loss $1/2$. Moving the $r$ missing links together to scale $s>0$ gives $g=s^r$ and
+\begin{equation}
+\frac12-L=s^r-\frac12s^{2r},\qquad
+\|\nabla_{1:r}L\|_2=\sqrt r\,(1-s^r)s^{r-1}.
+\label{eq:ssm-orders}
+\end{equation}
+Thus loss visibility has order $r$ and the missing-coordinate gradient norm has order $r-1$. Autograd agrees with Eq.~\eqref{eq:ssm-orders} to regression precision and log--log fits recover orders one through five. At exact zero, only the first-order case has nonzero missing-link gradient; all $r\geq2$ cases are exactly stationary in those coordinates.
+
+A fixed-step SGD audit gives threshold steps approximately $4,43,361,3965,53327$ for orders one through five. We treat these counts only as illustrative optimization evidence: they depend on learning rate, threshold, and parameterization. The exact validation claim is the shared current predictor together with the analytically verified loss/gradient order spectrum.
