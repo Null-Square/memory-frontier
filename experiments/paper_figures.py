@@ -30,64 +30,69 @@ def _plt():
 
 
 def save_forward_equivalence(outdir: Path) -> None:
+    """Draw three forward-equivalent bases with different dormant scaffolds."""
     plt, FancyArrowPatch, FancyBboxPatch = _plt()
-    fig, axes = plt.subplots(1, 3, figsize=(11.5, 3.4), constrained_layout=True)
+    fig, axes = plt.subplots(1, 3, figsize=(11.2, 2.75), constrained_layout=True)
     orders = [1, 2, 4]
+    xs = np.asarray([0.08, 0.29, 0.50, 0.71, 0.92])
+    y = 0.50
+    box_w = 0.12
+    box_h = 0.20
 
     for ax, order in zip(axes, orders):
-        ax.set_aspect("equal")
         ax.axis("off")
-        xs = np.arange(5, dtype=float)
-        ys = np.zeros_like(xs)
 
-        # Reset/reachable state is the only forward-active state at the base.
-        for i, (x, y) in enumerate(zip(xs, ys)):
+        for i, x in enumerate(xs):
             face = "white" if i == 0 else "0.92"
             box = FancyBboxPatch(
-                (x - 0.28, y - 0.22),
-                0.56,
-                0.44,
-                boxstyle="round,pad=0.03",
+                (x - box_w / 2, y - box_h / 2),
+                box_w,
+                box_h,
+                boxstyle="round,pad=0.02",
                 facecolor=face,
                 edgecolor="black",
                 linewidth=1.2,
+                transform=ax.transAxes,
             )
             ax.add_patch(box)
-            ax.text(x, y, f"m{i}", ha="center", va="center", fontsize=9)
+            ax.text(x, y, f"m{i}", ha="center", va="center", fontsize=9, transform=ax.transAxes)
 
-        # Perturbative edges needed before the prewired dormant suffix takes over.
         for i in range(4):
             learned = i < order
-            style = "--" if learned else "-"
-            lw = 1.8 if learned else 2.4
             arrow = FancyArrowPatch(
-                (xs[i] + 0.30, 0.0),
-                (xs[i + 1] - 0.30, 0.0),
+                (xs[i] + box_w / 2 + 0.01, y),
+                (xs[i + 1] - box_w / 2 - 0.01, y),
                 arrowstyle="->",
-                mutation_scale=11,
-                linestyle=style,
-                linewidth=lw,
+                mutation_scale=10,
+                linestyle="--" if learned else "-",
+                linewidth=1.7 if learned else 2.2,
+                transform=ax.transAxes,
             )
             ax.add_patch(arrow)
             ax.text(
                 (xs[i] + xs[i + 1]) / 2,
-                0.18,
-                "learn" if learned else "dormant prewire",
+                y + 0.14,
+                "learned" if learned else "prewired",
                 ha="center",
                 va="bottom",
                 fontsize=7,
-                rotation=20 if not learned else 0,
+                transform=ax.transAxes,
             )
 
-        ax.text(0, -0.52, "only forward-active base state", ha="center", fontsize=8)
-        ax.text(4, -0.52, "predictive readout", ha="center", fontsize=8)
-        ax.set_xlim(-0.65, 4.65)
-        ax.set_ylim(-0.75, 0.72)
-        ax.set_title(f"same current predictor, order {order}", fontsize=10)
+        ax.text(xs[0], 0.25, "forward-active", ha="center", fontsize=7.5, transform=ax.transAxes)
+        ax.text(xs[-1], 0.25, "predictive readout", ha="center", fontsize=7.5, transform=ax.transAxes)
+        ax.set_title(f"same current predictor, order {order}", fontsize=10, pad=2)
 
     fig.suptitle(
         "Forward-equivalent bases can expose different construction orders",
-        fontsize=12,
+        fontsize=11.5,
+    )
+    fig.text(
+        0.5,
+        0.01,
+        "white = forward-active at the base; gray = dormant; dashed = learned edge; solid = dormant prewire",
+        ha="center",
+        fontsize=8,
     )
     fig.savefig(outdir / "figure1_forward_equivalence.pdf", bbox_inches="tight")
     fig.savefig(outdir / "figure1_forward_equivalence.png", dpi=220, bbox_inches="tight")
@@ -95,11 +100,12 @@ def save_forward_equivalence(outdir: Path) -> None:
 
 
 def save_order_hierarchy(outdir: Path) -> None:
+    """Draw the support/operator/loss order hierarchy and cancellation gaps."""
     plt, FancyArrowPatch, FancyBboxPatch = _plt()
-    fig, ax = plt.subplots(figsize=(8.6, 3.1), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(8.4, 3.0), constrained_layout=True)
     ax.axis("off")
 
-    centers = [(0.17, 0.56), (0.50, 0.56), (0.83, 0.56)]
+    centers = [(0.17, 0.61), (0.50, 0.61), (0.83, 0.61)]
     labels = [
         (r"$d_{\rm support}$", "source-valid path cost"),
         (r"$d_{\rm operator}$", "quotient occupancy order"),
@@ -107,46 +113,47 @@ def save_order_hierarchy(outdir: Path) -> None:
     ]
     for (cx, cy), (symbol, subtitle) in zip(centers, labels):
         box = FancyBboxPatch(
-            (cx - 0.12, cy - 0.16),
-            0.24,
-            0.32,
+            (cx - 0.115, cy - 0.135),
+            0.23,
+            0.27,
             boxstyle="round,pad=0.02",
             facecolor="white",
             edgecolor="black",
-            linewidth=1.3,
+            linewidth=1.25,
             transform=ax.transAxes,
         )
         ax.add_patch(box)
-        ax.text(cx, cy + 0.04, symbol, ha="center", va="center", fontsize=15, transform=ax.transAxes)
-        ax.text(cx, cy - 0.07, subtitle, ha="center", va="center", fontsize=8, transform=ax.transAxes)
+        ax.text(cx, cy + 0.035, symbol, ha="center", va="center", fontsize=15, transform=ax.transAxes)
+        ax.text(cx, cy - 0.055, subtitle, ha="center", va="center", fontsize=8, transform=ax.transAxes)
 
     for left, right, text in [
         (centers[0], centers[1], "path/operator\ncancellation"),
         (centers[1], centers[2], "decoder\ncancellation"),
     ]:
+        arrow_y = 0.61
         arrow = FancyArrowPatch(
-            (left[0] + 0.125, left[1]),
-            (right[0] - 0.125, right[1]),
+            (left[0] + 0.122, arrow_y),
+            (right[0] - 0.122, arrow_y),
             arrowstyle="->",
             mutation_scale=13,
-            linewidth=1.4,
+            linewidth=1.35,
             transform=ax.transAxes,
         )
         ax.add_patch(arrow)
         ax.text(
             (left[0] + right[0]) / 2,
-            left[1] + 0.12,
+            0.39,
             text,
             ha="center",
-            va="bottom",
-            fontsize=8,
+            va="top",
+            fontsize=7.8,
             transform=ax.transAxes,
         )
 
     ax.text(
         0.5,
-        0.18,
-        r"$d_{\rm support}\le d_{\rm operator}\le d_{\rm loss}$",
+        0.19,
+        r"$d_{\rm support}\leq d_{\rm operator}\leq d_{\rm loss}$",
         ha="center",
         va="center",
         fontsize=16,
@@ -154,11 +161,11 @@ def save_order_hierarchy(outdir: Path) -> None:
     )
     ax.text(
         0.5,
-        0.06,
-        "generic continuous choices saturate the hierarchy; exact cancellations can make either inequality strict",
+        0.055,
+        "Generic continuous choices saturate the hierarchy; exact cancellations can make either inequality strict.",
         ha="center",
         va="center",
-        fontsize=8.5,
+        fontsize=8.2,
         transform=ax.transAxes,
     )
     fig.savefig(outdir / "figure2_order_hierarchy.pdf", bbox_inches="tight")
@@ -167,13 +174,14 @@ def save_order_hierarchy(outdir: Path) -> None:
 
 
 def save_census(outdir: Path) -> None:
+    """Plot the frozen 1,000-controller same-forward-class census."""
     plt, _, _ = _plt()
     orders = np.arange(1, 6)
     counts = np.asarray([235, 282, 244, 155, 84])
 
     fig, ax = plt.subplots(figsize=(6.5, 3.7), constrained_layout=True)
     bars = ax.bar(orders, counts)
-    ax.set_xlabel("exact order  $d_{support}=d_{operator}=d_{loss}$")
+    ax.set_xlabel(r"exact order  $d_{\rm support}=d_{\rm operator}=d_{\rm loss}$")
     ax.set_ylabel("controllers")
     ax.set_title("1,000 controllers in one exact forward-equivalence class")
     ax.set_xticks(orders)
@@ -207,10 +215,11 @@ def softmax_leading_time(degree: int, delta: np.ndarray) -> np.ndarray:
 
 
 def save_geometry_time_map(outdir: Path) -> None:
+    """Contrast two exact order-to-time maps without implying metric invariance."""
     plt, _, _ = _plt()
     deltas = np.logspace(-3.0, -1.35, 180)
 
-    fig, axes = plt.subplots(1, 2, figsize=(10.2, 3.8), constrained_layout=True)
+    fig, axes = plt.subplots(1, 2, figsize=(10.0, 3.65), constrained_layout=True)
     for degree in range(1, 6):
         axes[0].loglog(deltas, probability_time(degree, deltas), label=f"d={degree}")
         axes[1].loglog(deltas, softmax_leading_time(degree, deltas), label=f"d={degree}")
@@ -218,10 +227,20 @@ def save_geometry_time_map(outdir: Path) -> None:
     axes[0].set_title("Euclidean affine-probability flow")
     axes[1].set_title("rare-edge Euclidean softmax flow")
     for ax in axes:
-        ax.set_xlabel("initial edge scale  $\\delta$")
+        ax.set_xlabel(r"initial edge scale  $\delta$")
         ax.set_ylabel("leading completion time")
         ax.grid(True, which="both", linewidth=0.35)
+
     axes[0].legend(frameon=False, fontsize=8)
+    axes[0].text(
+        0.04,
+        0.05,
+        r"$d=1$: finite;  $d=2$: logarithmic;  $d\geq3$: $\Theta(\delta^{-(d-2)})$",
+        transform=axes[0].transAxes,
+        ha="left",
+        va="bottom",
+        fontsize=7.8,
+    )
     axes[1].text(
         0.04,
         0.96,
@@ -233,7 +252,7 @@ def save_geometry_time_map(outdir: Path) -> None:
     )
     fig.suptitle(
         "Construction order is structural; the order-to-time map depends on optimization geometry",
-        fontsize=11.5,
+        fontsize=11.2,
     )
     fig.savefig(outdir / "figure4_order_to_time_geometry.pdf", bbox_inches="tight")
     fig.savefig(outdir / "figure4_order_to_time_geometry.png", dpi=220, bbox_inches="tight")
