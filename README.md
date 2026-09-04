@@ -1,6 +1,4 @@
-<p align="center">
-  <img src="assets/memory-frontier-cover.png" alt="Memory Frontier — Same predictor. Different learnability." width="100%">
-</p>
+![Memory Frontier — Same predictor. Different learnability.](./assets/memory-frontier-cover.png)
 
 <p align="center">
   <a href="https://github.com/Null-Square/memory-frontier/actions/workflows/tests.yml"><img alt="Tests" src="https://github.com/Null-Square/memory-frontier/actions/workflows/tests.yml/badge.svg"></a>
