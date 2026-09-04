@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="640" viewBox="0 0 1600 640" role="img" aria-labelledby="t d">
+<title id="t">Memory Frontier — Same predictor. Different learnability.</title><desc id="d">NullSquare repository cover for finite-state memory research.</desc>
+<rect width="1600" height="640" fill="#000"/>
+<image x="72" y="52" width="250" height="36" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPoAAAAkCAYAAACg2CdiAAAEr0lEQVR42u1dS27jMAwVB4UFdDv36AG6KXryopseoIfpwJmFZjGxoSqS+DHlOM17gIRECTmiLf5GSGsKBMc+n9TP/GwAAHX6BBQAAQwcAAIYOAAAMHQCAQ+Ahvb24EaPX95DeXsKf33/D49MHuAsABwEd+eXm+RRinNZK+/J3jJPrM3JwtCXf19D0pucxRi29rTS30vPm9x7vaKVl6TrFOAX6+nxOIxyIR0Tfw9BbzwTaStZyRhr55Arbc273JIuRY37wJvj49BHOzoPS20ug1/fDM7b0fi1llXh1jef3pjcy+uY86dGUGHt5v0ePU35vfmsjqdap9aKuZMzWiO5ejPv6fL4ZzxlCSOU1z6eUZxHc95f7hQBKmt/ocPQqAu3SEyiX+vetaD3Pp9Ti2/leKPnXcxgMvdUASnre/O7x8PyZevLXyqDFv9aYmTFwF6rukimDEumn8ePMiyQZ26KsNQNoOIwuL3v0RvM7i6hpkK5Yx6wGDL3NbFdG3/KccYnUW5xdJTqa6O0lD4X8RzkaV7ow9A6j83nTHRt572skyAS8FDjdoyy8soUH2PO2IsqdKhllRkeNqJ+ye5zCUqU4l3ZIk10iq7bjoBhzCoIWeIwTwdC3R3XCjjmRI6RCUaniLFJL4ct22zyfyKr4g2s0bu9VGfOQgBTjBEOXCh24qGGshtxL5bkoXIuEV4rcIqNr3btmMJDoJwyd99irUiNtv0xps+9cRHCBApKwNbWrE8iekYQ60nRaUgPdMh6mWEpD+ug/QcEbKfy9Oz/JXHZdhyBV3hZfr8VvzpF0xqTuJGS981ar0S3AwNDrgqQjpWbXdnrnT1LwMFnW41cWHh2h9nARHTUr744ydUTqLk9b073yIjd2prCmTrFbaf6157ytdFhS+HIyTtfpIgy9H9WTM82byxA6u72ouG+pRK9djaK9RC0nIZ2fW/gtcE7sSj4PA13aZVKHgfbaxijWaPFIPHGzUFPuxLOmgL0FLZqNFoKNPaliDCRpDZX9Ze47xfx1V35r6goemUzhzFJl6kNeW1fRXvMRmLTwQpoqa0/IW9NCj/3oRhrVHvTCG4FjpVH8lqTte+oYt41XK08YulMKz0UuYZQi4Xux7RTH37eMk+WNgCeqCF7Ofz35LVm9J0znxel79rwqjyUpuUCeIcaJUHVnBGE8zYWsz3Mo5GyNRpoNJJboa53DUifyjeb3Wm0vL4+Mh6vie2SVMHTGaDWKZG1HSQsqV4T23ag0oi28qfzehd+aba95+8+zFVhEdW+nDUMfZbiFgpPQKOiIRyfl4z87IrIYeY03Cnp5garaBbDyOz/ggVv2mmd4Ar1IinGxUd1DJ9wN/RZOfy1aRN+uRgTKhVperEJnSl0+i2qRqhFRNVdtDbrp9+WSVmYs7Hg09CzGbuG3gFdVGSv14uJ+7jyWbkbve0ZZUggBh0Nq38UwX28q/q1tmJGe3+Z1OKQkymppemdNnjIcqQ847nnDUcEapRlxMKHFAKyFIa+x7EFvC03LcdCWQz6ly2g9VgzGOP0/qdXNazj/A4cjRXTgOM4e+IFCXj5xhhsA2IGqOwDA0AEAgKEDAABDBwDgGPgHwvzUt1cWEEUAAAAASUVORK5CYII="/>
+<line x1="760" y1="55" x2="760" y2="585" stroke="#181819"/>
+<g font-family="Inter,Arial,Helvetica,sans-serif">
+<text x="72" y="188" font-size="17" font-weight="500" fill="#5C5C5D">FINITE-STATE MEMORY</text>
+<text x="72" y="298" font-size="84" font-weight="800" letter-spacing="-2" fill="#F5F5F7">MEMORY</text>
+<text x="72" y="374" font-size="84" font-weight="800" letter-spacing="-2" fill="#F5F5F7">FRONTIER</text>
+<text x="72" y="450" font-size="28" fill="#F5F5F7">Same predictor.</text>
+<text x="72" y="489" font-size="28" fill="#ABABAD">Different learnability.</text>
+</g>
+<!-- deterministic vector abstraction of the supplied memory-card asset -->
+<g transform="translate(995 66)">
+ <path d="M16 26 L34 8 H300 L355 62 V397 H344 V430 H298 L278 468 H88 L69 430 H15 V397 H4 V80 H16Z" fill="#909092"/>
+ <path d="M33 35 H292 L334 76 V389 H324 V412 H279 L260 448 H106 L88 412 H34 V389 H23 V89 H33Z" fill="#646466"/>
+ <path d="M51 88 Q51 58 80 58 H280 Q311 58 311 89 V336 Q311 366 281 366 H80 Q51 366 51 336Z" fill="#1E1E1F"/>
+ <path d="M78 74 H284 Q296 74 296 92 V326 Q296 346 279 346 H80 Q66 346 66 326 V93 Q66 74 78 74Z" fill="#222223"/>
+ <path d="M82 407 H275 L259 438 H100Z" fill="#1E1E1F"/>
+ <g transform="translate(181 205)" stroke="#F5F5F7" stroke-width="6" stroke-linecap="square">
+   <path d="M0 -23 V23 M-23 0 H23 M-16 -16 L16 16 M16 -16 L-16 16"/>
+ </g>
+ <g font-family="monospace" font-size="12" font-weight="700" fill="#BCBCBE" letter-spacing="1">
+  <text x="76" y="302">SRS-04</text><text x="76" y="319">NODE: 7F3A-09C1</text><text x="76" y="336">SIG: 0X8A4F2E</text><text x="76" y="353">ORBITAL: LOCKED</text>
+ </g>
+ <path d="M14 130 H4 V173 H14 M344 129 H355 V173 H344" stroke="#BCBCBE" stroke-width="8" fill="none"/>
+ <path d="M28 22 L312 22 L344 54" stroke="#F5F5F7" stroke-width="3" fill="none" opacity=".7"/>
+</g>
+</svg>
