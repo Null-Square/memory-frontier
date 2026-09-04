@@ -1,3 +1,5 @@
+![Memory Frontier — Same predictor. Different learnability.](assets/memory-frontier-cover.png)
+
 # Construction Order in Finite-State Memory
 
 This repository is the research and reproducibility package for the paper **“Same Predictor, Different Learnability: Construction Order in Finite-State Memory.”**
