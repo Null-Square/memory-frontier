@@ -1,4 +1,4 @@
-![Memory Frontier — Same predictor. Different learnability.](./assets/memory-frontier-cover.svg)
+![Memory Frontier — Same predictor. Different learnability.](./assets/memory-frontier-cover.jpg)
 
 <p align="center">
   <a href="https://github.com/Null-Square/memory-frontier/actions/workflows/tests.yml"><img alt="Tests" src="https://github.com/Null-Square/memory-frontier/actions/workflows/tests.yml/badge.svg"></a>
